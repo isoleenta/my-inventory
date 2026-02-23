@@ -18,12 +18,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+        ]);
+
         $middleware->redirectGuestsTo(function (Request $request) {
             if ($request->is('api/*')) {
                 return Response::error(__('Unauthorized'), Response::UNAUTHORIZED);
             }
+            if ($request->is('nova', 'nova/*')) {
+                return route('nova.pages.login');
+            }
 
-            return route('nova.pages.login');
+            return route('login');
         });
     })
     ->withExceptions(function (Exceptions $exceptions) {

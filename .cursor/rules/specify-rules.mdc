@@ -1,0 +1,33 @@
+# my-inventory Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2026-02-19
+
+## Active Technologies
+- PHP 8.2 + Laravel 11, Inertia.js, React 18, Vite, Tailwind CSS, Sanctum, Laravel Breeze (or equivalent), Spatie Data Transfer Objec (002-inventory-organizer)
+- MySQL / PostgreSQL (or SQLite for dev) (002-inventory-organizer)
+
+- PHP 8.2 + Laravel 11, Inertia.js, React 18, Vite, Tailwind CSS, Sanctum, Breeze (001-inventory-organizer)
+
+## Project Structure
+
+```text
+backend/
+frontend/
+tests/
+```
+
+## Commands
+
+# Add commands for PHP 8.2
+
+## Code Style
+
+PHP 8.2: Follow standard conventions
+
+## Recent Changes
+- 002-inventory-organizer: Added PHP 8.2 + Laravel 11, Inertia.js, React 18, Vite, Tailwind CSS, Sanctum, Laravel Breeze (or equivalent), Spatie Data Transfer Objec
+
+- 001-inventory-organizer: Added PHP 8.2 + Laravel 11, Inertia.js, React 18, Vite, Tailwind CSS, Sanctum, Breeze
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

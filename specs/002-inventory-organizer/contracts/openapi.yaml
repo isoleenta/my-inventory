@@ -1,0 +1,196 @@
+openapi: 3.0.3
+info:
+  title: Inventory Organizer API (002)
+  description: Resource contract for inventory items. App may use Inertia (web) or these REST shapes for API consumers.
+  version: 0.1.0
+
+paths:
+  /api/items:
+    get:
+      summary: List inventory items
+      operationId: listItems
+      parameters:
+        - name: category
+          in: query
+          schema: { $ref: '#/components/schemas/InventoryCategory' }
+        - name: place
+          in: query
+          schema: { $ref: '#/components/schemas/InventoryPlace' }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        '200':
+          description: Paginated list of items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/InventoryItem' } }
+                  meta: { $ref: '#/components/schemas/PaginationMeta' }
+    post:
+      summary: Create inventory item
+      operationId: createItem
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: '#/components/schemas/InventoryItemCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InventoryItem' }
+        '422':
+          description: Validation error
+
+  /api/items/{id}:
+    get:
+      summary: Show one item
+      operationId: showItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Item with photos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InventoryItem' }
+        '404':
+          description: Not found
+    put:
+      summary: Update item
+      operationId: updateItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { $ref: '#/components/schemas/InventoryItemUpdate' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InventoryItem' }
+        '404':
+          description: Not found
+        '422':
+          description: Validation error
+    delete:
+      summary: Delete item
+      operationId: deleteItem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+
+  /api/categories:
+    get:
+      summary: List prebuilt categories (enum values)
+      operationId: listCategories
+      responses:
+        '200':
+          description: List of category labels/values
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CategoryOption' }
+
+  /api/places:
+    get:
+      summary: List prebuilt places (enum values)
+      operationId: listPlaces
+      responses:
+        '200':
+          description: List of place labels/values
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PlaceOption' }
+
+components:
+  schemas:
+    InventoryCategory:
+      type: string
+      enum: [electronics, tools, food, clothing, documents, media, sports, other]
+    InventoryPlace:
+      type: string
+      enum: [garage, bedroom, kitchen, fridge, drawers, bathroom, office, living_room, storage, other]
+
+    CategoryOption:
+      type: object
+      properties:
+        value: { $ref: '#/components/schemas/InventoryCategory' }
+        label: { type: string }
+    PlaceOption:
+      type: object
+      properties:
+        value: { $ref: '#/components/schemas/InventoryPlace' }
+        label: { type: string }
+
+    InventoryItemPhoto:
+      type: object
+      properties:
+        id: { type: integer }
+        path: { type: string }
+        url: { type: string, description: 'Full URL to display image' }
+        sort_order: { type: integer }
+
+    InventoryItem:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        category: { $ref: '#/components/schemas/InventoryCategory', nullable: true }
+        place: { $ref: '#/components/schemas/InventoryPlace', nullable: true }
+        photos: { type: array, items: { $ref: '#/components/schemas/InventoryItemPhoto' } }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    InventoryItemCreate:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, maxLength: 255 }
+        description: { type: string }
+        category: { $ref: '#/components/schemas/InventoryCategory' }
+        place: { $ref: '#/components/schemas/InventoryPlace' }
+        photos: { type: array, items: { type: string, format: binary }, maxItems: 10 }
+
+    InventoryItemUpdate:
+      type: object
+      properties:
+        title: { type: string, maxLength: 255 }
+        description: { type: string }
+        category: { $ref: '#/components/schemas/InventoryCategory' }
+        place: { $ref: '#/components/schemas/InventoryPlace' }
+        photos: { type: array, items: { type: string, format: binary }, maxItems: 10 }
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }

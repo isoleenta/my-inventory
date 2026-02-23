@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Black-green theme base */
+@layer base {
+    body {
+        @apply bg-black text-green-light antialiased;
+    }
+}
