@@ -28,6 +28,21 @@ services:
       - mysql
       - redis
 
+  mcp:
+    image: 'laravel-api-template:latest'
+    networks:
+      - laravel-api-template
+    command: php artisan boost:mcp
+    volumes:
+      - '.:/var/www/html'
+      - './docker/api/php.ini:/usr/local/etc/php/php.ini'
+      - './docker/ssh:/home/www/.ssh'
+      - './docker/api/.bashrc:/home/www/.bashrc'
+    depends_on:
+      - api
+    stdin_open: true
+    tty: false
+
   #horizon:
   #  image: 'laravel-api-template:latest'
   #  command: 'php artisan horizon'
