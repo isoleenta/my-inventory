@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\DTOs\ItemData;
-use App\Enums\PlaceType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,8 +26,11 @@ class StoreItemRequest extends FormRequest
                 'integer',
                 Rule::exists('categories', 'id')->where('user_id', $this->user('web_user')->id),
             ],
-            'place' => ['required', 'string', Rule::enum(PlaceType::class)],
-            'custom_place' => ['nullable', 'string', 'max:255'],
+            'place_id' => [
+                'required',
+                'integer',
+                Rule::exists('places', 'id')->where('user_id', $this->user('web_user')->id),
+            ],
             'price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'photos' => ['nullable', 'array', 'max:10'],
             'photos.*' => ['image', 'max:5120'],
@@ -43,10 +45,9 @@ class StoreItemRequest extends FormRequest
 
         return new ItemData(
             title: $v['title'],
-            place: $v['place'],
+            place_id: (int) $v['place_id'],
             description: $v['description'] ?? null,
             category_id: isset($v['category_id']) ? (int) $v['category_id'] : null,
-            custom_place: $v['custom_place'] ?? null,
             price: isset($v['price']) ? (string) $v['price'] : null,
             details: $v['details'] ?? []
         );

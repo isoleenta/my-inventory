@@ -32,9 +32,14 @@ final class CategoryService
         return $this->categoryRepository->getEligibleParents($user, $excludeCategoryId);
     }
 
+    public function findForUser(int $id, User $user): ?Category
+    {
+        return $this->categoryRepository->findByIdAndUser($id, $user);
+    }
+
     public function findOrFail(int $id, User $user): Category
     {
-        $category = $this->categoryRepository->findByIdAndUser($id, $user);
+        $category = $this->findForUser($id, $user);
 
         if ($category === null) {
             abort(404);

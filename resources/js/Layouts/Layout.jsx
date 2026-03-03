@@ -9,9 +9,10 @@ export default function Layout({ children, header = null }) {
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                     <Link
                         href="/"
-                        className="text-xl font-semibold text-primary hover:text-primary-light"
+                        className="flex items-center gap-2 text-primary transition hover:opacity-90"
                     >
-                        Inventory Organizer
+                        <img src="/images/logo.png" alt="isoleenta" className="h-8 w-8 object-contain invert" />
+                        <span className="text-xl font-semibold text-primary hover:text-primary-light">isoleenta</span>
                     </Link>
                     <nav className="flex items-center gap-4">
                         {auth?.user ? (
@@ -83,7 +84,7 @@ export default function Layout({ children, header = null }) {
 
             <footer className="shrink-0 border-t border-white/10 bg-[#111]">
                 <div className="mx-auto max-w-7xl py-4 px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-400">
-                    &copy; {new Date().getFullYear()} Inventory Organizer
+                    &copy; {new Date().getFullYear()} isoleenta
                 </div>
             </footer>
         </div>

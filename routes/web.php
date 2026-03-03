@@ -5,9 +5,11 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\ProfileController;
 use App\Models\Category;
 use App\Models\Item;
+use App\Models\Place;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -27,10 +29,21 @@ Route::middleware('auth:web_user')->group(function () {
         Route::get('/', 'index')
             ->can('viewAny', Item::class)
             ->name('index');
-        Route::get('/{place}', 'place')
-            ->where('place', 'garage|bedroom|kitchen|fridge|drawer|other')
+        Route::get('/place/{place}', 'place')
             ->can('viewAny', Item::class)
             ->name('show');
+    });
+
+    Route::prefix('places')->name('places.')->controller(PlaceController::class)->group(function () {
+        Route::get('/', 'index')->can('viewAny', Place::class)->name('index');
+        Route::get('/create', 'create')->can('create', Place::class)->name('create');
+        Route::post('/', 'store')->can('create', Place::class)->name('store');
+        Route::prefix('{place}')->group(function () {
+            Route::get('/edit', 'edit')->can('update', 'place')->name('edit');
+            Route::put('/', 'update')->can('update', 'place')->name('update');
+            Route::patch('/', 'update')->can('update', 'place')->name('patch');
+            Route::delete('/', 'destroy')->can('delete', 'place')->name('destroy');
+        });
     });
 
     Route::prefix('items')->name('items.')->controller(ItemController::class)->group(function () {

@@ -1,15 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 
-const PLACE_ICONS = {
-    garage: '🔧',
-    bedroom: '🛏️',
-    kitchen: '🍳',
-    fridge: '🧊',
-    drawer: '🗄️',
-    other: '📦',
-};
-
 export default function InventoryPlaces({ places }) {
     return (
         <AuthenticatedLayout>
@@ -41,7 +32,7 @@ export default function InventoryPlaces({ places }) {
                             className="flex flex-col gap-2 rounded-xl border-2 border-white/10 bg-surface p-6 transition hover:border-primary/50 hover:bg-surface-light"
                         >
                             <span className="text-3xl">
-                                {PLACE_ICONS[place.value] ?? '📦'}
+                                📦
                             </span>
                             <h3 className="font-semibold text-white">
                                 {place.label}

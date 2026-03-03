@@ -9,14 +9,13 @@ import { Head, Link, useForm } from '@inertiajs/react';
 const inputClass =
     'mt-1 block w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-gray-100 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary';
 
-export default function EditItem({ item, categories = [], placeOptions }) {
+export default function EditItem({ item, categories = [], placeOptions = {} }) {
     const categoryOptions = categoryTreeOptions(categories);
     const { data, setData, post, transform, processing, errors } = useForm({
         title: item.title,
         description: item.description || '',
         category_id: item.category_id?.toString() || '',
-        place: item.place?.value ?? item.place ?? 'other',
-        custom_place: item.custom_place || '',
+        place_id: item.place_id?.toString() ?? '',
         price: item.price != null ? String(item.price) : '',
         details: item.details ?? {},
         photos: [],
@@ -39,7 +38,7 @@ export default function EditItem({ item, categories = [], placeOptions }) {
             ...d,
             _method: 'PUT',
             category_id: d.category_id ? parseInt(d.category_id, 10) : null,
-            custom_place: (d.custom_place && String(d.custom_place).trim()) || null,
+            place_id: d.place_id ? parseInt(d.place_id, 10) : null,
             price: (d.price && String(d.price).trim()) ? d.price : null,
         }));
         post(route('items.update', item.id));
@@ -175,11 +174,11 @@ export default function EditItem({ item, categories = [], placeOptions }) {
                         )}
 
                         <div>
-                            <InputLabel htmlFor="place" value="Place" />
+                            <InputLabel htmlFor="place_id" value="Place" />
                             <select
-                                id="place"
-                                value={data.place}
-                                onChange={(e) => setData('place', e.target.value)}
+                                id="place_id"
+                                value={data.place_id}
+                                onChange={(e) => setData('place_id', e.target.value)}
                                 className={inputClass}
                                 required
                             >
@@ -189,19 +188,7 @@ export default function EditItem({ item, categories = [], placeOptions }) {
                                     </option>
                                 ))}
                             </select>
-                            <InputError message={errors.place} className="mt-2" />
-                        </div>
-
-                        <div>
-                            <InputLabel htmlFor="custom_place" value="Custom place (optional)" />
-                            <TextInput
-                                id="custom_place"
-                                value={data.custom_place}
-                                onChange={(e) =>
-                                    setData('custom_place', e.target.value)
-                                }
-                                className="mt-1 block w-full"
-                            />
+                            <InputError message={errors.place_id} className="mt-2" />
                         </div>
 
                         <div>

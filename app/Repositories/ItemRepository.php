@@ -5,10 +5,12 @@ namespace App\Repositories;
 use App\DTOs\ItemData;
 use App\Models\Item;
 use App\Models\ItemPhoto;
+use App\Models\Place;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedSort;
 use Spatie\QueryBuilder\QueryBuilder;
 
 final class ItemRepository
@@ -35,7 +37,7 @@ final class ItemRepository
                         $query->where('category_id', $value);
                     }
                 }),
-                AllowedFilter::exact('place'),
+                AllowedFilter::exact('place_id'),
                 AllowedFilter::callback('name', function ($query, $value) {
                     $term = trim((string) $value);
                     if ($term === '') {
@@ -57,9 +59,19 @@ final class ItemRepository
                     }
                 }),
             ])
-            ->allowedSorts(['title', 'price', 'created_at', 'place'])
+            ->allowedSorts([
+                'title',
+                'price',
+                'created_at',
+                AllowedSort::callback('place', function ($query, bool $descending) {
+                    $query->orderBy(
+                        Place::select('name')->whereColumn('places.id', 'items.place_id'),
+                        $descending ? 'desc' : 'asc'
+                    );
+                }),
+            ])
             ->defaultSort('title')
-            ->with(['category', 'photos'])
+            ->with(['category', 'place', 'photos'])
             ->get();
     }
 
@@ -68,13 +80,13 @@ final class ItemRepository
         return Item::query()
             ->where('id', $id)
             ->where('user_id', $user->id)
-            ->with(['category', 'photos'])
+            ->with(['category', 'place', 'photos'])
             ->first();
     }
 
     public function loadDisplayRelations(Item $item): Item
     {
-        $item->load(['category', 'photos']);
+        $item->load(['category', 'place', 'photos']);
 
         return $item;
     }
@@ -88,7 +100,7 @@ final class ItemRepository
     {
         $item->update($data->getFillable());
 
-        return $item->fresh(['category', 'photos']);
+        return $item->fresh(['category', 'place', 'photos']);
     }
 
     public function delete(Item $item): void
@@ -117,15 +129,15 @@ final class ItemRepository
     }
 
     /**
-     * @return array<string, int>
+     * @return array<int, int>
      */
     public function getCountByPlace(User $user): array
     {
         return Item::query()
             ->where('user_id', $user->id)
-            ->selectRaw('place, count(*) as count')
-            ->groupBy('place')
-            ->pluck('count', 'place')
+            ->selectRaw('place_id, count(*) as count')
+            ->groupBy('place_id')
+            ->pluck('count', 'place_id')
             ->all();
     }
 

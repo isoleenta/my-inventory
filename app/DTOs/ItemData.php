@@ -3,7 +3,7 @@
 namespace App\DTOs;
 
 /**
- * @phpstan-type FillableArray array{category_id?: int|null, place: string, custom_place?: string|null, title: string, description?: string|null, price?: string|null, details?: array<string, string|null>}
+ * @phpstan-type FillableArray array{category_id?: int|null, place_id: int, title: string, description?: string|null, price?: string|null, details?: array<string, string|null>}
  */
 final class ItemData
 {
@@ -12,10 +12,9 @@ final class ItemData
      */
     public function __construct(
         public readonly string $title,
-        public readonly string $place,
+        public readonly int $place_id,
         public readonly ?string $description = null,
         public readonly ?int $category_id = null,
-        public readonly ?string $custom_place = null,
         public readonly ?string $price = null,
         public readonly array $details = []
     ) {}
@@ -29,8 +28,7 @@ final class ItemData
             'title' => $this->title,
             'description' => $this->description,
             'category_id' => $this->category_id,
-            'place' => $this->place,
-            'custom_place' => $this->custom_place,
+            'place_id' => $this->place_id,
             'price' => $this->price,
             'details' => $this->details,
         ];

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\DTOs\ItemData;
-use App\Enums\PlaceType;
 use App\Models\Item;
 use App\Models\ItemPhoto;
 use App\Models\User;
@@ -16,6 +15,7 @@ final class ItemService
 {
     public function __construct(
         private readonly ItemRepository $itemRepository,
+        private readonly PlaceService $placeService,
         private readonly Filesystem $storage
     ) {}
 
@@ -55,7 +55,7 @@ final class ItemService
             $this->itemRepository->addPhoto($item, $path, $index);
         }
 
-        return $item->fresh(['category', 'photos']);
+        return $item->fresh(['category', 'place', 'photos']);
     }
 
     /**
@@ -72,7 +72,7 @@ final class ItemService
             $this->itemRepository->addPhoto($item, $path, $maxOrder);
         }
 
-        return $item->fresh(['category', 'photos']);
+        return $item->fresh(['category', 'place', 'photos']);
     }
 
     public function delete(Item $item): void
@@ -90,21 +90,17 @@ final class ItemService
     }
 
     /**
-     * @return array<int, array{value: string, label: string, count: int}>
+     * @return array<int, array{value: int, label: string, count: int}>
      */
     public function getPlacesWithCounts(User $user): array
     {
-        $counts = $this->itemRepository->getCountByPlace($user);
-        $result = [];
-        foreach (PlaceType::cases() as $place) {
-            $result[] = [
-                'value' => $place->value,
-                'label' => $place->label(),
-                'count' => (int) ($counts[$place->value] ?? 0),
-            ];
-        }
+        $places = $this->placeService->listForUserWithItemCount($user);
 
-        return $result;
+        return $places->map(fn ($place) => [
+            'value' => $place->id,
+            'label' => $place->name,
+            'count' => (int) $place->items_count,
+        ])->all();
     }
 
     public function getTotalCountByUser(User $user): int

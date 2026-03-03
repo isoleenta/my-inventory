@@ -79,7 +79,7 @@ export default function ItemCard({ item }) {
                         </>
                     )}
                 </div>
-                <div className="flex min-w-0 flex-1 flex-col justify-center p-4">
+                <div className="flex min-w-0 flex-1 flex-col justify-center p-4 pr-6">
                     <span className="font-medium text-white group-hover:text-primary">
                         {item.title}
                     </span>

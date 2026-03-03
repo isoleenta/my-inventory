@@ -1,15 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 
-const PLACE_ICONS = {
-    garage: '🔧',
-    bedroom: '🛏️',
-    kitchen: '🍳',
-    fridge: '🧊',
-    drawer: '🗄️',
-    other: '📦',
-};
-
 function StatCard({ icon, label, value, sub, href, className = '' }) {
     const content = (
         <div
@@ -41,8 +32,9 @@ function StatCard({ icon, label, value, sub, href, className = '' }) {
 
 export default function Dashboard({ stats, places, categoriesWithStats }) {
     const { totalItems, categoriesCount } = stats ?? {};
-    const maxPlaceCount = Math.max(1, ...(places ?? []).map((p) => p.count));
-    const categories = categoriesWithStats ?? [];
+    const placesWithItems = (places ?? []).filter((p) => p.count > 0);
+    const maxPlaceCount = Math.max(1, ...placesWithItems.map((p) => p.count));
+    const categories = (categoriesWithStats ?? []).filter((c) => (c.items_count ?? 0) > 0);
 
     return (
         <AuthenticatedLayout>
@@ -148,7 +140,7 @@ export default function Dashboard({ stats, places, categoriesWithStats }) {
                         </div>
                     ) : (
                         <ul className="mt-6 space-y-3">
-                            {(places ?? []).map((place) => {
+                            {placesWithItems.map((place) => {
                                 const width = maxPlaceCount > 0 ? (place.count / maxPlaceCount) * 100 : 0;
                                 return (
                                     <li key={place.value}>
@@ -162,7 +154,7 @@ export default function Dashboard({ stats, places, categoriesWithStats }) {
                                                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/5 text-xl transition group-hover:bg-primary/20"
                                                 aria-hidden
                                             >
-                                                {PLACE_ICONS[place.value] ?? '📦'}
+                                                📦
                                             </span>
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex items-baseline justify-between gap-2">

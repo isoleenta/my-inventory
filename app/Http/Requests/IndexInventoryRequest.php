@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\PlaceType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,7 +25,12 @@ class IndexInventoryRequest extends FormRequest
                 'min:1',
                 Rule::exists('categories', 'id')->where('user_id', $this->user('web_user')->id),
             ],
-            'filter.place' => ['nullable', 'string', Rule::enum(PlaceType::class)],
+            'filter.place_id' => [
+                'nullable',
+                'integer',
+                'min:1',
+                Rule::exists('places', 'id')->where('user_id', $this->user('web_user')->id),
+            ],
             'filter.name' => ['nullable', 'string', 'max:255'],
             'filter.price_min' => ['nullable', 'numeric', 'min:0'],
             'filter.price_max' => ['nullable', 'numeric', 'min:0'],
@@ -44,7 +48,7 @@ class IndexInventoryRequest extends FormRequest
     }
 
     /**
-     * @return array{category_id: int|null, place: string|null, name: string|null, price_min: string|float|null, price_max: string|float|null}
+     * @return array{category_id: int|null, place_id: int|null, name: string|null, price_min: string|float|null, price_max: string|float|null}
      */
     public function getFilters(): array
     {
@@ -54,14 +58,14 @@ class IndexInventoryRequest extends FormRequest
         $categoryId = $filter['category_id'] ?? null;
         $categoryId = $categoryId !== null && $categoryId !== '' && (int) $categoryId > 0 ? (int) $categoryId : null;
 
-        $place = isset($filter['place']) && trim((string) $filter['place']) !== '' ? trim((string) $filter['place']) : null;
+        $placeId = isset($filter['place_id']) && (int) $filter['place_id'] > 0 ? (int) $filter['place_id'] : null;
         $name = isset($filter['name']) && trim((string) $filter['name']) !== '' ? trim((string) $filter['name']) : null;
         $priceMin = isset($filter['price_min']) && $filter['price_min'] !== null && $filter['price_min'] !== '' ? $filter['price_min'] : null;
         $priceMax = isset($filter['price_max']) && $filter['price_max'] !== null && $filter['price_max'] !== '' ? $filter['price_max'] : null;
 
         return [
             'category_id' => $categoryId,
-            'place' => $place,
+            'place_id' => $placeId,
             'name' => $name,
             'price_min' => $priceMin,
             'price_max' => $priceMax,

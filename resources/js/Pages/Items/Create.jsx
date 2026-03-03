@@ -9,14 +9,14 @@ import { Head, Link, useForm } from '@inertiajs/react';
 const inputClass =
     'mt-1 block w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-gray-100 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary';
 
-export default function CreateItem({ categories = [], placeOptions }) {
+export default function CreateItem({ categories = [], placeOptions = {} }) {
     const categoryOptions = categoryTreeOptions(categories);
+    const firstPlaceId = Object.keys(placeOptions)[0] ?? '';
     const { data, setData, post, transform, processing, errors } = useForm({
         title: '',
         description: '',
         category_id: '',
-        place: 'other',
-        custom_place: '',
+        place_id: firstPlaceId,
         price: '',
         details: {},
         photos: [],
@@ -35,21 +35,53 @@ export default function CreateItem({ categories = [], placeOptions }) {
 
     const submit = (e) => {
         e.preventDefault();
-        transform((d) => ({
-            ...d,
-            category_id: d.category_id ? parseInt(d.category_id, 10) : null,
-            custom_place: (d.custom_place && String(d.custom_place).trim()) || null,
-            price: (d.price && String(d.price).trim()) ? d.price : null,
-        }));
+        const addAnother =
+            e.nativeEvent?.submitter?.getAttribute('name') === 'add_another';
+        transform((d) => {
+            const payload = {
+                ...d,
+                category_id: d.category_id ? parseInt(d.category_id, 10) : null,
+                place_id: d.place_id ? parseInt(d.place_id, 10) : null,
+                price: (d.price && String(d.price).trim()) ? d.price : null,
+            };
+            if (addAnother) payload.add_another = true;
+            return payload;
+        });
         post(route('items.store'));
     };
+
+    const hasPlaces = Object.keys(placeOptions).length > 0;
+
+    if (!hasPlaces) {
+        return (
+            <AuthenticatedLayout>
+                <Head title="Add item" />
+                <div className="mx-auto flex w-full max-w-2xl flex-col">
+                    <section className="mb-8 text-center">
+                        <h1 className="text-2xl font-semibold text-white sm:text-3xl">
+                            Add item
+                        </h1>
+                        <p className="mt-4 text-gray-400">
+                            Create a place first so you can assign items to it.
+                        </p>
+                        <Link
+                            href={route('places.create')}
+                            className="mt-4 inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-black"
+                        >
+                            New place
+                        </Link>
+                    </section>
+                </div>
+            </AuthenticatedLayout>
+        );
+    }
 
     return (
         <AuthenticatedLayout>
             <Head title="Add item" />
 
-            <div className="flex flex-col">
-                <section className="mb-8">
+            <div className="mx-auto flex w-full max-w-2xl flex-col">
+                <section className="mb-8 text-center">
                     <h1 className="text-2xl font-semibold text-white sm:text-3xl">
                         Add item
                     </h1>
@@ -58,7 +90,7 @@ export default function CreateItem({ categories = [], placeOptions }) {
                     </p>
                 </section>
 
-                <div className="max-w-2xl rounded-xl border border-white/10 bg-surface p-6 sm:p-8">
+                <div className="rounded-xl border border-white/10 bg-surface p-6 sm:p-8">
                     <form onSubmit={submit} className="space-y-6">
                         <div>
                             <InputLabel htmlFor="title" value="Title" />
@@ -161,11 +193,11 @@ export default function CreateItem({ categories = [], placeOptions }) {
                         )}
 
                         <div>
-                            <InputLabel htmlFor="place" value="Place" />
+                            <InputLabel htmlFor="place_id" value="Place" />
                             <select
-                                id="place"
-                                value={data.place}
-                                onChange={(e) => setData('place', e.target.value)}
+                                id="place_id"
+                                value={data.place_id}
+                                onChange={(e) => setData('place_id', e.target.value)}
                                 className={inputClass}
                                 required
                             >
@@ -175,19 +207,7 @@ export default function CreateItem({ categories = [], placeOptions }) {
                                     </option>
                                 ))}
                             </select>
-                            <InputError message={errors.place} className="mt-2" />
-                        </div>
-
-                        <div>
-                            <InputLabel htmlFor="custom_place" value="Custom place (optional)" />
-                            <TextInput
-                                id="custom_place"
-                                value={data.custom_place}
-                                onChange={(e) =>
-                                    setData('custom_place', e.target.value)
-                                }
-                                className="mt-1 block w-full"
-                            />
+                            <InputError message={errors.place_id} className="mt-2" />
                         </div>
 
                         <div>
@@ -218,16 +238,27 @@ export default function CreateItem({ categories = [], placeOptions }) {
                             <InputError message={errors.photos} className="mt-2" />
                         </div>
 
-                        <div className="flex flex-wrap gap-4">
-                            <PrimaryButton disabled={processing}>
-                                Create item
-                            </PrimaryButton>
+                        <div className="flex flex-wrap items-center justify-between gap-4">
                             <Link
                                 href={route('inventory.index')}
                                 className="rounded-lg border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-medium text-gray-200 transition hover:bg-white/10 hover:text-white"
                             >
                                 Cancel
                             </Link>
+                            <div className="flex flex-wrap items-center gap-4">
+                                <PrimaryButton disabled={processing}>
+                                    Create item
+                                </PrimaryButton>
+                                <button
+                                    type="submit"
+                                    name="add_another"
+                                    value="1"
+                                    disabled={processing}
+                                    className="rounded-lg border border-primary bg-transparent px-5 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-50 disabled:pointer-events-none"
+                                >
+                                    {processing ? 'Creating…' : 'Create & Add Another'}
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>

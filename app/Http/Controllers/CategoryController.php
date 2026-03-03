@@ -22,8 +22,22 @@ class CategoryController extends Controller
         $user = $request->user('web_user');
         $categories = $this->categoryService->listForUser($user);
 
+        $selectedCategory = null;
+        $eligibleParents = [];
+
+        $categoryId = $request->integer('category', 0);
+        if ($categoryId > 0) {
+            $selectedCategory = $this->categoryService->findForUser($categoryId, $user);
+
+            if ($selectedCategory !== null) {
+                $eligibleParents = $this->categoryService->listEligibleParents($user, $selectedCategory->id);
+            }
+        }
+
         return Inertia::render('Categories/Index', [
             'categories' => $categories,
+            'selectedCategory' => $selectedCategory,
+            'eligibleParents' => $eligibleParents,
         ]);
     }
 
@@ -41,6 +55,10 @@ class CategoryController extends Controller
     {
         $user = $request->user('web_user');
         $this->categoryService->create($user, $request->toDTO());
+
+        if ($request->boolean('add_another')) {
+            return redirect()->route('categories.create')->with('success', __('Category created.'));
+        }
 
         return redirect()->route('categories.index')->with('success', __('Category created.'));
     }
@@ -60,7 +78,7 @@ class CategoryController extends Controller
     {
         $this->categoryService->update($category, $request->toDTO());
 
-        return redirect()->route('categories.index')->with('success', __('Category updated.'));
+        return redirect()->route('categories.index', ['category' => $category->id])->with('success', __('Category updated.'));
     }
 
     public function destroy(Category $category): RedirectResponse
