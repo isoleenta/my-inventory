@@ -27,9 +27,14 @@ class CategoryController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Categories/Create');
+        $user = $request->user('web_user');
+        $categories = $this->categoryService->listForUser($user);
+
+        return Inertia::render('Categories/Create', [
+            'categories' => $categories,
+        ]);
     }
 
     public function store(StoreCategoryRequest $request): RedirectResponse
@@ -40,10 +45,14 @@ class CategoryController extends Controller
         return redirect()->route('categories.index')->with('success', __('Category created.'));
     }
 
-    public function edit(Category $category): Response
+    public function edit(Request $request, Category $category): Response
     {
+        $user = $request->user('web_user');
+        $eligibleParents = $this->categoryService->listEligibleParents($user, $category->id);
+
         return Inertia::render('Categories/Edit', [
             'category' => $category,
+            'eligibleParents' => $eligibleParents,
         ]);
     }
 

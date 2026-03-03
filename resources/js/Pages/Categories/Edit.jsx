@@ -3,6 +3,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { categoryTreeOptions } from '@/lib/categoryTree';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 const inputClass =
@@ -18,11 +19,13 @@ function slugFromLabel(label) {
 
 const emptyField = () => ({ label: '', type: 'text' });
 
-export default function EditCategory({ category }) {
+export default function EditCategory({ category, eligibleParents = [] }) {
     const { data, setData, put, transform, processing, errors } = useForm({
         name: category.name,
+        parent_id: category.parent_id?.toString() ?? '',
         fields: category.fields ?? [],
     });
+    const parentOptions = categoryTreeOptions(eligibleParents);
 
     const addField = () => {
         setData('fields', [...data.fields, emptyField()]);
@@ -62,7 +65,8 @@ export default function EditCategory({ category }) {
                     type: f.type || 'text',
                 };
             });
-            return { ...d, fields };
+            const parent_id = d.parent_id ? parseInt(d.parent_id, 10) : null;
+            return { ...d, fields, parent_id };
         });
         put(route('categories.update', category.id));
     };
@@ -96,6 +100,29 @@ export default function EditCategory({ category }) {
                             />
                             <InputError
                                 message={errors.name}
+                                className="mt-2"
+                            />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="parent_id" value="Parent category (optional)" />
+                            <select
+                                id="parent_id"
+                                value={data.parent_id}
+                                onChange={(e) =>
+                                    setData('parent_id', e.target.value)
+                                }
+                                className={inputClass}
+                            >
+                                <option value="">— None (root) —</option>
+                                {parentOptions.map(({ id, name, depth }) => (
+                                    <option key={id} value={id}>
+                                        {'\u00A0'.repeat(depth * 2)}{depth > 0 ? '└ ' : ''}{name}
+                                    </option>
+                                ))}
+                            </select>
+                            <InputError
+                                message={errors.parent_id}
                                 className="mt-2"
                             />
                         </div>

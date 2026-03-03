@@ -13,8 +13,32 @@ final class CategoryRepository
     {
         return Category::query()
             ->where('user_id', $user->id)
+            ->orderByRaw('parent_id is null desc')
             ->orderBy('name')
             ->get();
+    }
+
+    /**
+     * Categories that can be chosen as parent (exclude self and descendants).
+     *
+     * @return Collection<int, Category>
+     */
+    public function getEligibleParents(User $user, ?int $excludeCategoryId = null): Collection
+    {
+        $query = Category::query()
+            ->where('user_id', $user->id)
+            ->orderByRaw('parent_id is null desc')
+            ->orderBy('name');
+
+        if ($excludeCategoryId !== null) {
+            $category = $this->findByIdAndUser($excludeCategoryId, $user);
+            if ($category !== null) {
+                $ids = $category->getDescendantAndSelfIds();
+                $query->whereNotIn('id', $ids);
+            }
+        }
+
+        return $query->get();
     }
 
     /**
@@ -53,5 +77,15 @@ final class CategoryRepository
     public function delete(Category $category): void
     {
         $category->delete();
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function getDescendantAndSelfIds(int $categoryId, User $user): array
+    {
+        $category = $this->findByIdAndUser($categoryId, $user);
+
+        return $category !== null ? $category->getDescendantAndSelfIds() : [];
     }
 }

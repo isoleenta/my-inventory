@@ -13,16 +13,28 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 final class ItemRepository
 {
+    public function __construct(
+        private readonly CategoryRepository $categoryRepository
+    ) {}
+
     /**
      * @return Collection<int, Item>
      */
     public function getByUserWithQueryBuilder(User $user, Request $request): Collection
     {
         $baseQuery = Item::query()->where('user_id', $user->id);
+        $categoryRepository = $this->categoryRepository;
 
         return QueryBuilder::for($baseQuery, $request)
             ->allowedFilters([
-                AllowedFilter::exact('category_id'),
+                AllowedFilter::callback('category_id', function ($query, $value) use ($user, $categoryRepository) {
+                    $ids = $categoryRepository->getDescendantAndSelfIds((int) $value, $user);
+                    if ($ids !== []) {
+                        $query->whereIn('category_id', $ids);
+                    } else {
+                        $query->where('category_id', $value);
+                    }
+                }),
                 AllowedFilter::exact('place'),
                 AllowedFilter::callback('name', function ($query, $value) {
                     $term = trim((string) $value);

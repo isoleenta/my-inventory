@@ -13,6 +13,7 @@ class Category extends Model
 
     protected $fillable = [
         'user_id',
+        'parent_id',
         'name',
         'fields',
     ];
@@ -29,9 +30,42 @@ class Category extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(Category::class, 'parent_id');
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(Item::class);
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function getDescendantAndSelfIds(): array
+    {
+        $ids = [$this->id];
+        $currentLevelIds = [$this->id];
+
+        do {
+            $nextLevelIds = static::query()
+                ->whereIn('parent_id', $currentLevelIds)
+                ->pluck('id')
+                ->all();
+            if ($nextLevelIds === []) {
+                break;
+            }
+            $ids = array_merge($ids, $nextLevelIds);
+            $currentLevelIds = $nextLevelIds;
+        } while (true);
+
+        return array_values(array_unique($ids));
     }
 
     public function resolveRouteBinding($value, $field = null): ?static

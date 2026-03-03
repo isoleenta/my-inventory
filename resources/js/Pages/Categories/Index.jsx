@@ -1,7 +1,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { categoryTreeOptions } from '@/lib/categoryTree';
 import { Head, Link, router } from '@inertiajs/react';
 
 export default function CategoriesIndex({ categories }) {
+    const treeOptions = categoryTreeOptions(categories);
     const deleteCategory = (id, name) => {
         if (window.confirm(`Delete category "${name}"?`)) {
             router.delete(route('categories.destroy', id));
@@ -44,22 +46,23 @@ export default function CategoriesIndex({ categories }) {
                     </div>
                 ) : (
                     <ul className="space-y-3">
-                        {categories.map((category) => (
+                        {treeOptions.map(({ id, name, depth }) => (
                             <li
-                                key={category.id}
+                                key={id}
                                 className="flex items-center justify-between rounded-xl border border-white/10 bg-surface px-5 py-4 transition hover:border-primary/30 hover:bg-surface-light"
+                                style={{ paddingLeft: `${1 + depth * 1.25}rem` }}
                             >
                                 <Link
-                                    href={route('categories.edit', category.id)}
+                                    href={route('categories.edit', id)}
                                     className="font-medium text-white hover:text-primary"
                                 >
-                                    {category.name}
+                                    {depth > 0 ? '└ ' : ''}{name}
                                 </Link>
                                 <div className="flex gap-3">
                                     <Link
                                         href={route(
                                             'categories.edit',
-                                            category.id
+                                            id
                                         )}
                                         className="rounded-md px-3 py-1.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white"
                                     >
@@ -69,8 +72,8 @@ export default function CategoriesIndex({ categories }) {
                                         type="button"
                                         onClick={() =>
                                             deleteCategory(
-                                                category.id,
-                                                category.name
+                                                id,
+                                                name
                                             )
                                         }
                                         className="rounded-md px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300"

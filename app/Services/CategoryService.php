@@ -22,6 +22,16 @@ final class CategoryService
         return $this->categoryRepository->getByUser($user);
     }
 
+    /**
+     * Categories that can be chosen as parent (for create: all; for edit: exclude self and descendants).
+     *
+     * @return Collection<int, Category>
+     */
+    public function listEligibleParents(User $user, ?int $excludeCategoryId = null): Collection
+    {
+        return $this->categoryRepository->getEligibleParents($user, $excludeCategoryId);
+    }
+
     public function findOrFail(int $id, User $user): Category
     {
         $category = $this->categoryRepository->findByIdAndUser($id, $user);

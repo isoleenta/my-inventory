@@ -3,12 +3,14 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { categoryTreeOptions } from '@/lib/categoryTree';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 const inputClass =
     'mt-1 block w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-gray-100 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary';
 
-export default function CreateItem({ categories, placeOptions }) {
+export default function CreateItem({ categories = [], placeOptions }) {
+    const categoryOptions = categoryTreeOptions(categories);
     const { data, setData, post, transform, processing, errors } = useForm({
         title: '',
         description: '',
@@ -95,9 +97,9 @@ export default function CreateItem({ categories, placeOptions }) {
                                 className={inputClass}
                             >
                                 <option value="">— None —</option>
-                                {categories.map((cat) => (
-                                    <option key={cat.id} value={cat.id}>
-                                        {cat.name}
+                                {categoryOptions.map(({ id, name, depth }) => (
+                                    <option key={id} value={id}>
+                                        {'\u00A0'.repeat(depth * 2)}{depth > 0 ? '└ ' : ''}{name}
                                     </option>
                                 ))}
                             </select>

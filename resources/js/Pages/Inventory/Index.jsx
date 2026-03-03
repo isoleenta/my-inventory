@@ -1,5 +1,6 @@
 import ItemCard from '@/Components/ItemCard';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { categoryTreeOptions } from '@/lib/categoryTree';
 import { Head, Link, router } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -30,6 +31,7 @@ function buildParams(filters, sort) {
 }
 
 export default function InventoryIndex({ items, categories, placeOptions, filters, sort }) {
+    const categoryOptions = categoryTreeOptions(categories ?? []);
     const [localName, setLocalName] = useState(filters?.name ?? '');
     const debounceRef = useRef(null);
 
@@ -128,9 +130,9 @@ export default function InventoryIndex({ items, categories, placeOptions, filter
                                     }
                                 >
                                     <option value="">All</option>
-                                    {categories.map((cat) => (
-                                        <option key={cat.id} value={cat.id}>
-                                            {cat.name}
+                                    {categoryOptions.map(({ id, name, depth }) => (
+                                        <option key={id} value={id}>
+                                            {'\u00A0'.repeat(depth * 2)}{depth > 0 ? '└ ' : ''}{name}
                                         </option>
                                     ))}
                                 </select>

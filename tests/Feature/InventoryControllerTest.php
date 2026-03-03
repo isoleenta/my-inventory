@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Item;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -59,6 +60,29 @@ class InventoryControllerTest extends TestCase
             ->where('filters.place', 'garage')
             ->where('filters.name', 'test')
             ->where('sort', '-created_at')
+        );
+    }
+
+    public function test_filtering_by_category_includes_items_in_child_categories(): void
+    {
+        $user = $this->createUser();
+        $parent = Category::create(['user_id' => $user->id, 'name' => 'Parent', 'fields' => []]);
+        $child = Category::create(['user_id' => $user->id, 'parent_id' => $parent->id, 'name' => 'Child', 'fields' => []]);
+        $itemInChild = Item::create([
+            'user_id' => $user->id,
+            'category_id' => $child->id,
+            'place' => 'other',
+            'title' => 'Item in child',
+        ]);
+
+        $response = $this->actingAs($user, 'web_user')
+            ->get(route('inventory.index', ['filter' => ['category_id' => $parent->id]]));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('items')
+            ->where('items.0.id', $itemInChild->id)
+            ->where('items.0.title', 'Item in child')
         );
     }
 
