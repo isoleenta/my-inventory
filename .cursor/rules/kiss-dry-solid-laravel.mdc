@@ -1,0 +1,31 @@
+---
+description: KISS, DRY, SOLID and production-ready Laravel code
+alwaysApply: true
+---
+
+# KISS, DRY, SOLID — Production-Ready Laravel
+
+Write elegant Laravel code as a senior developer would for production. Follow these principles in every change.
+
+## KISS (Keep It Simple, Stupid)
+
+- Prefer the simplest solution that works. Avoid over-abstraction and speculative features.
+- Use built-in Laravel features (Eloquent, Form Requests, Policies, Resources) before introducing custom layers.
+- Short, single-purpose methods over long procedural blocks.
+- No clever one-liners at the cost of readability.
+
+## DRY (Don't Repeat Yourself)
+
+- Extract repeated logic into services, scopes, traits, or shared components. Check for existing helpers before adding new ones.
+- One source of truth for validation (Form Requests), authorization (Policies), and data shape (DTOs/Resources).
+- Reuse existing components and conventions; align with sibling files in the same feature.
+
+## SOLID
+
+- **S**ingle responsibility: One class, one clear purpose (e.g. controller → HTTP, service → business logic, repository → data access).
+- **O**pen/closed: Extend via new classes or composition; avoid editing stable code to add behavior.
+- **L**iskov: Substitutes and implementations must honor contracts (return types, invariants).
+- **I**nterface segregation: Prefer small, focused interfaces over large ones.
+- **D**ependency inversion: Depend on abstractions (interfaces, type hints); inject dependencies in constructors.
+
+**Example:** Controllers call services; services use repositories; no Eloquent or raw queries in controllers or services—only in repositories.

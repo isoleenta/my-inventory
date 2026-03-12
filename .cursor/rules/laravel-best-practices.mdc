@@ -1,20 +1,22 @@
 ---
 alwaysApply: true
 ---
+# Laravel Constitution
 
-# Department PHP & Laravel Constitution
-
-Unified coding style for all PHP projects in our department. Based on PSR-12, Laravel conventions, and team experience.
+**ELEGANT** code above all. Unified coding style for senior-level, production-ready Laravel
 
 ---
 
 ## 1. General Principles
 
-- Follow [**PSR-12**](https://www.php-fig.org/psr/psr-12/) as the base standard.
-- Adhere to [**Laravel conventions**](https://github.com/alexeymezenin/laravel-best-practices?tab=readme-ov-file#contents) where applicable.
+- Follow **PSR-12** as the base standard.
+- Adhere to **Laravel conventions** where applicable.
 - Prioritize **readability over cleverness**.
 - Maintain one class per file, with one responsibility per class.
 - Avoid unnecessary abstraction or overengineering.
+- Reuse code when you can — use Eloquent scopes, shared services, Blade components, etc.
+- Prefer descriptive method and variable names over comments.
+- Use **logical blank lines** to separate groups of statements, distinct method calls, and logical aspects within methods and config/arrays (Laravel style).
 
 ---
 
@@ -23,7 +25,7 @@ Unified coding style for all PHP projects in our department. Based on PSR-12, La
 - **Use Laravel defaults** unless there's a compelling reason not to.
 - Group features by domain when possible (`app/Services/User`, `app/Http/Controllers/Auth`).
 - Use the **Controller → Service → Repository** layering for data flows.
-- Utilize `Http/Requests`, `Http/Resources`, `Services`, `Repositories`, `Jobs`, `Enums`, `DTOs`, `Traits` as needed.
+- Utilize `app/Http/Requests`, `app/Http/Resources`, `app/Services`, `app/Repositories`, `app/Jobs`, `app/Enums`, `app/DTOs`, `app/Traits`, `app/Exceptions` as needed.
 
 ---
 
@@ -33,15 +35,15 @@ Unified coding style for all PHP projects in our department. Based on PSR-12, La
   - Controllers handle HTTP: validate input, call services, return responses.
   - Services contain business logic and orchestrate repositories.
   - Repositories are the **only** place for Eloquent or raw SQL queries. All **CRUD operations** (create, read, update, delete) must go through a repository — never in controllers, services, jobs, or views.
-- Use **Form Requests** for validation (`StoreUserRequest`, `UpdateUserRequest`).
+- Use **Form Requests** for validation (`StoreUserRequest`, `UpdateUserRequest`). Do **not** use `$request->validated()` in controllers — validation runs in the request class, so invalid data never reaches the controller. Access validated fields via `$request->field` or pass data via `$request->toDTO()`.
 - Use **Spatie DTO** to transfer data from requests to services. Add a `toDTO()` method on the request to parse validated data into a DTO. Skip creating a DTO when the request has only one parameter — pass that value directly.
 - Add a `getFillable()` method on DTOs (or create/update data objects) that returns the array of attributes used for create/update operations in repositories. Repositories should call `getFillable()` on DTO objects when performing `create()` or `update()`.
 - Implement **Resources** for response transformation.
 - Keep controllers lean — move logic to **Services**, **Jobs**, or **Actions**.
 - Use Eloquent accessors / mutators instead of raw logic in views or controllers.
-- Prefer dependency injection over facades in services.
-- Implement authorization through **policies** by applying `->can()` (or `->canMiddleware()`) on routes — e.g. `Route::get('/posts/{post}', ...)->can('view', 'post')`. Do not use inline checks like `if ($user->id === ...)` in controllers or views. Also not recommended to use authorize methods inside controllers.
-- **Route files (`web.php`, `api.php`):** Use the Route facade methods to the maximum to keep routes DRY and readable. Prefer `->controller()`, `->prefix()`, `->middleware()`, and `->group()` instead of repeating the same controller, URI prefix, or middleware on each route. Group related routes and attach shared middleware/prefix in one place.
+- Prefer dependency injection for application services (your own services, repositories). Do **not** inject Laravel facade-backed classes (e.g. `Illuminate\Contracts\Http\Client\Factory`, `Illuminate\Contracts\Events\Dispatcher`, `Illuminate\Contracts\Notifications\Dispatcher`, `Illuminate\Mail\Mailer`) — use facades (`Http`, `Event`, `Notification`, `Mail`) so tests can use `Http::fake()`, `Event::fake()`, `Notification::fake()`, etc.
+- Implement authorization through **policies** by applying `->can()` on routes — e.g. `Route::get('/posts/{post}', ...)->can('view', 'post')`. Do not use inline checks like `if ($user->id === ...)` in controllers or views.
+- **Route files (`web.php`, `api.php`):** Use the Route facade methods to the maximum to keep routes DRY and readable. Always use `->prefix()` and `->name()` (with dot-notation, e.g. `->name('items.')`) and declare route names inline (e.g. `->name('index')`, `->name('store')`) inside the group. Prefer `->controller()`, `->prefix()`, `->middleware()`, and `->group()` instead of repeating the same controller, URI prefix, or middleware on each route.
 - **Filtering / query building:** Install and use **spatie/laravel-query-builder** for building filters, sorts, and includes on Eloquent queries (e.g. in repositories or API controllers). Use `QueryBuilder::for()` and allowed filters/sorts/includes instead of hand-rolled filter logic.
 - **Phone validation:** Install and use **propaganistas/laravel-phone** when validating phone numbers. Use its validation rule (e.g. `Phone::country()` or the `phone` rule) instead of custom regex or manual validation.
 
@@ -61,83 +63,34 @@ Route::middleware('auth:sanctum')->prefix('items')->name('items.')->controller(I
 
 ---
 
-## 4. Formatting
+## 4. Function & Method Rules
 
-- **Imports:** Replace qualifiers (fully qualified class names) with a `use` statement at the top of the file. Do not use `\App\Models\User`, `Illuminate\Support\Facades\Route`, etc. in the body — import the class once and refer to it by short name.
-- Use **single quotes** unless string interpolation is needed.
-- Always **declare visibility** on methods (`public`, `private`, `protected`).
-- Add a blank line:
-  - After namespace declarations
-  - After class property declarations
-  - Between methods
-- Avoid trailing commas in method parameters (but they are allowed in arrays and multiline declarations).
-
----
-
-## 5. Function & Method Rules
-
-- Keep methods **short and single-purpose**.
-- Use **type hints** everywhere: parameters, return types, and properties (PHP 7.4+ or 8+).
+- Keep methods **short and single-purpose** — a method should do exactly one thing.
+- Use **type hints** everywhere: parameters, return types, and properties (PHP 8+).
 - Apply `final` to classes and methods when appropriate (especially in services).
 - Handle `null` cases defensively where needed.
+- **Logical whitespace (Laravel style):** Use blank lines to separate logical blocks and improve readability. Add a blank line between distinct groups of statements (e.g. input preparation vs. service call vs. return), between unrelated method calls when several are in a row, and between different logical aspects in a method. In config/array structures, add blank lines between logical sections.
 
 ---
 
-## 6. Naming Conventions
+## 5. Avoid
 
-| Element   | Convention        | Example                 |
-| --------- | ----------------- | ----------------------- |
-| Classes   | PascalCase        | `UserController`, `AuthService` |
-| Methods   | camelCase         | `handleRequest()`, `createUser()` |
-| Variables | camelCase         | `$userId`, `$authToken` |
-| Constants | UPPER_SNAKE_CASE  | `MAX_ATTEMPTS`          |
-| Migration names | snake_case + action | `create_users_table` |
-
----
-
-## 7. Testing
-
-- Name files consistently: `UserServiceTest.php`, `AuthControllerTest.php`.
-- Use **Feature** tests for endpoints, **Unit** tests for isolated logic.
-- Structure tests using the **Given-When-Then** pattern where appropriate.
-- Use factories, seeders, faker, laravel best practices for test data instead of manual model creation.
-
----
-
-## 8. Tooling & Linters
-
-Run code through:
-
-- **PHP-CS-Fixer** (config available)
-- **PHPStan** or **Larastan** for static analysis
-
-Run Pint:
-
-```bash
-docker compose exec api ./vendor/bin/pint
-```
-
----
-
-## 9. Avoid
-
-- Eloquent or SQL queries outside repositories (controllers, services, jobs, views). No CRUD operations (create, read, update, delete) outside repositories.
-- `dd()` / `dump()` in production code
-- Unused imports and dead code
-- Excessive use of static methods (except for helpers)
-- Complex logic in Blade views (simple conditions are acceptable)
-- Resolving dependencies via `new Class` or `app(Class)` — use constructor injection in controllers, services, repositories, etc.
-- Using `Request::all()` — validate inputs explicitly
-- Using `Model::all()` when querying data — always filter or paginate results
-- Writing logic inside controllers, inline in routes
-- Resolving dependencies via `new Class` or `app(Class)` — use constructor injection in controllers, services, repositories, etc.
+- Eloquent or SQL queries outside repositories (controllers, services, jobs, views). No CRUD operations outside repositories.
+- **Never allow N+1 queries.** Always use eager loading for relationships using `with()`, `load()`, or Laravel's native relationship limiting.
+- Unused imports and dead code.
+- Excessive use of static methods (except for helpers).
+- Complex logic in Blade views (simple conditions are acceptable).
+- Resolving dependencies via `new Class` or `app(Class)` — use constructor injection for your own classes (controllers, services, repositories). Do not inject Laravel's built-in facade-backed classes (Http, Event, Notification, Mail, etc.); use facades and `fake()` in tests.
+- Using `$request->validated()` in controllers — validation is done in the Form Request; use `$request->field` or `$request->toDTO()` instead.
+- Using `Model::all()` when querying data — always filter or paginate results.
+- Writing logic inside controllers or inline in route files.
 - **Qualifiers in the body** — do not use fully qualified class names (e.g. `\App\Models\User`, `Illuminate\Support\Facades\DB`) in the code; use `use` at the top and the short name instead.
 
 ---
 
-## 10. Single Responsibility Principle
+## 6. Single Responsibility & Business Logic
 
-A class should have only one responsibility.
+A class should have only one responsibility. Controllers handle HTTP; services handle business logic.
 
 **Bad:**
 
@@ -166,8 +119,7 @@ public function update(Request $request): string
 public function update(UpdateRequest $request): string
 {
     $this->logService->logEvents($request->events);
-
-    $this->event->updateGeneralEvent($request->validated());
+    $this->eventService->updateGeneral($request->toDTO());
 
     return back();
 }
@@ -175,57 +127,9 @@ public function update(UpdateRequest $request): string
 
 ---
 
-## 11. Methods Should Do Just One Thing
+## 7. Validation
 
-A function should do just one thing and do it well.
-
----
-
-## 12. Fat Models, Skinny Controllers
-
-Put all DB related logic into Eloquent models.
-
-**Bad:**
-
-```php
-public function index()
-{
-    $clients = Client::verified()
-        ->with(['orders' => function ($q) {
-            $q->where('created_at', '>', Carbon::today()->subWeek());
-        }])
-        ->get();
-
-    return view('index', ['clients' => $clients]);
-}
-```
-
-**Good:**
-
-```php
-public function index()
-{
-    return view('index', ['clients' => $this->client->getWithNewOrders()]);
-}
-
-class Client extends Model
-{
-    public function getWithNewOrders(): Collection
-    {
-        return $this->verified()
-            ->with(['orders' => function ($q) {
-                $q->where('created_at', '>', Carbon::today()->subWeek());
-            }])
-            ->get();
-    }
-}
-```
-
----
-
-## 13. Validation
-
-Move validation from controllers to Request classes.
+Move validation from controllers to Request classes. Use array syntax for rules (not pipe strings).
 
 **Bad:**
 
@@ -237,8 +141,6 @@ public function store(Request $request)
         'body' => 'required',
         'publish_at' => 'nullable|date',
     ]);
-
-    ...
 }
 ```
 
@@ -250,14 +152,14 @@ public function store(PostRequest $request)
     ...
 }
 
-class PostRequest extends Request
+class PostRequest extends FormRequest
 {
     public function rules(): array
     {
         return [
-            'title' => 'required|unique:posts|max:255',
-            'body' => 'required',
-            'publish_at' => 'nullable|date',
+            'title' => ['required', 'unique:posts', 'max:255'],
+            'body' => ['required'],
+            'publish_at' => ['nullable', 'date'],
         ];
     }
 }
@@ -265,66 +167,50 @@ class PostRequest extends Request
 
 ---
 
-## 14. Business Logic in Service Class
+## 8. Don't Repeat Yourself (DRY)
 
-A controller must have only one responsibility; move business logic to service classes.
+Reuse code when you can. SRP helps avoid duplication. Reuse Blade templates, use Eloquent scopes, extract shared logic into services or traits, etc.
 
-**Bad:**
+---
 
-```php
-public function store(Request $request)
-{
-    if ($request->hasFile('image')) {
-        $request->file('image')->move(public_path('images') . 'temp');
-    }
+## 9. Prefer Eloquent and Collections
 
-    ...
-}
-```
-
-**Good:**
+Use Eloquent over Query Builder and raw SQL; prefer collections over arrays. Eloquent provides readable code, soft deletes, events, scopes, etc. Queries belong in repositories.
 
 ```php
-public function store(Request $request)
+// Good — inside a repository
+public function findVerifiedWithProfile(): Collection
 {
-    $this->articleService->handleUploadedImage($request->file('image'));
-
-    ...
-}
-
-class ArticleService
-{
-    public function handleUploadedImage($image): void
-    {
-        if (!is_null($image)) {
-            $image->move(public_path('images') . 'temp');
-        }
-    }
+    return Article::query()
+        ->has('user.profile')
+        ->verified()
+        ->latest()
+        ->get();
 }
 ```
 
 ---
 
-## 15. Don't Repeat Yourself (DRY)
+## 10. Eager Loading (N+1 Problem)
 
-Reuse code when you can. SRP helps avoid duplication. Reuse Blade templates, use Eloquent scopes, etc.
----
-
-## 16. Prefer Eloquent and Collections
-
-Use Eloquent over Query Builder and raw SQL; prefer collections over arrays. Eloquent provides readable code, soft deletes, events, scopes, etc.
-
-**Bad:** Raw SQL with nested EXISTS.
-
-**Good:**
+Do not run queries in cycles, use eager loading. Inspect all queries in development, especially when loading related models, and ensure no N+1 queries are present. Review all loops rendering related data to guarantee relationships are preloaded. This is a hard rule: no code that produces an N+1 query may be committed or merged under any circumstance. Use `with()` and `load()` methods.
 
 ```php
-Article::has('user.profile')->verified()->latest()->get();
+// Bad — N+1
+$posts = Post::query()->get();
+foreach ($posts as $post) {
+    echo $post->author->name;
+}
+
+// Good
+$posts = Post::query()->with('author')->get();
 ```
 
 ---
 
-## 17. Mass Assignment
+## 11. Mass Assignment
+
+Prefer `create()` / `update()` with a fillable DTO over property-by-property assignment.
 
 **Bad:**
 
@@ -332,153 +218,99 @@ Article::has('user.profile')->verified()->latest()->get();
 $article = new Article;
 $article->title = $request->title;
 $article->content = $request->content;
-$article->verified = $request->verified;
-$article->category_id = $category->id;
 $article->save();
 ```
 
-**Good:**
+**Good (in a repository):**
 
 ```php
-$category->article()->create($request->validated());
+public function store(ArticleDTO $dto): Article
+{
+    return Article::query()->create($dto->getFillable());
+}
 ```
 
 ---
 
-## 18. Eager Loading (N + 1 Problem)
+## 12. Chunk Data for Data-Heavy Tasks
 
-Do not run queries in Blade templates; use eager loading.
-
-**Bad** (e.g. 100 users → 101 queries):
-
-```blade
-@foreach (User::all() as $user)
-    {{ $user->profile->name }}
-@endforeach
-```
-
-**Good** (e.g. 100 users → 2 queries):
+Use `chunk()` or `chunkById()` for batch processing large datasets to avoid memory exhaustion.
 
 ```php
-$users = User::with('profile')->get();
-```
-
-```blade
-@foreach ($users as $user)
-    {{ $user->profile->name }}
-@endforeach
+User::query()->where('subscribed', true)->chunkById(200, function (Collection $users) {
+    $users->each(fn (User $user) => SendNewsletter::dispatch($user));
+});
 ```
 
 ---
 
-## 19. Chunk Data for Data-Heavy Tasks
+## 13. Config and Language Files
+
+Use config and language files instead of literal strings or `env()` in application code.
+
+**Bad:** `$apiKey = env('API_KEY');`
+
+**Good:** Define `'key' => env('API_KEY')` in `config/services.php`, then use `config('services.key')`.
 
 ---
 
-## 20. Descriptive Names Over Comments
-
-Prefer descriptive method and variable names over comments.
-
----
-
-## 22. Config and Language Files
-
-Use config and language files and constants instead of literal text in code.
-
----
-
-## 24. Laravel Naming Conventions (Detailed)
-
-Follow PSR and Laravel naming conventions:
-
-| What | How | Good | Bad |
-|------|-----|------|-----|
-| Controller | singular | ArticleController | ArticlesController |
-| Route | plural | articles/1 | article/1 |
-| Route name | snake_case with dot notation | users.show_active | users.show-active, show-active-users |
-| Model | singular | User | Users |
-| hasOne or belongsTo | singular | articleComment | articleComments, article_comment |
-| Other relationships | plural | articleComments | articleComment, article_comments |
-| Table | plural | article_comments | article_comment, articleComments |
-| Pivot table | singular model names, alphabetical | article_user | user_article, articles_users |
-| Table column | snake_case without model name | meta_title | MetaTitle; article_meta_title |
-| Model property | snake_case | $model->created_at | $model->createdAt |
-| Foreign key | singular model + _id | article_id | ArticleId, id_article, articles_id |
-| Primary key | - | id | custom_id |
-| Migration | - | 2017_01_01_000000_create_articles_table | 2017_01_01_000000_articles |
-| Method | camelCase | getAll | get_all |
-| Resource controller method | table | store | saveArticle |
-| Test method | camelCase | testGuestCannotSeeArticle | test_guest_cannot_see_article |
-| Variable | camelCase | $articlesWithAuthor | $articles_with_author |
-| Collection | descriptive, plural | $activeUsers = User::active()->get() | $active, $data |
-| Object | descriptive, singular | $activeUser = User::active()->first() | $users, $obj |
-| Config/lang index | snake_case | articles_enabled | ArticlesEnabled; articles-enabled |
-| View | kebab-case | show-filtered.blade.php | showFiltered.blade.php, show_filtered.blade.php |
-| Config file | snake_case | google_calendar.php | googleCalendar.php, google-calendar.php |
-| Contract (interface) | adjective or noun | AuthenticationInterface | Authenticatable, IAuthentication |
-| Trait | adjective | Notifiable | NotificationTrait |
-| Enum | singular | UserType | UserTypes, UserTypeEnum |
-| FormRequest | singular | UpdateUserRequest | UpdateUserFormRequest, UserFormRequest, UserRequest |
-| Seeder | singular | UserSeeder | UsersSeeder |
-
----
-
-## 25. Convention Over Configuration
+## 14. Convention Over Configuration
 
 Follow Laravel conventions so you rarely need extra configuration.
 
 **Bad:** Explicit table name, primary key, timestamps, pivot table names when they match conventions.
 
-**Good:** Rely on defaults (e.g. table `customers`, primary key `id`, `belongsToMany(Role::class)`).
+**Good:** Rely on defaults (e.g. table `users`, primary key `id`, `belongsToMany(Role::class)`).
 
 ---
 
-## 26. Shorter Readable Syntax
+## 15. Shorter Readable Syntax
 
 Prefer shorter Laravel helpers and syntax where possible.
 
 | Common syntax | Shorter |
-|---------------|---------|
-| $request->session()->get('cart'), $request->input('name') | session('cart'), $request->name |
-| return Redirect::back() | return back() |
-| is_null($object->relation) ? null : $object->relation->id | optional($object->relation)->id or $object->relation?->id |
-| return view('index')->with('title', $title)->with('client', $client) | return view('index', compact('title', 'client')) |
-| Carbon::now(), Carbon::today() | now(), today() |
-| App::make('Class') | app('Class') |
-| ->where('column', '=', 1) | ->where('column', 1) |
-| ->orderBy('created_at', 'desc') | ->latest() |
-| ->orderBy('created_at', 'asc') | ->oldest() |
-| ->first()->name | ->value('name') |
+|---|---|
+| `$request->session()->get('cart')`, `$request->input('name')` | `session('cart')`, `$request->name` |
+| `return Redirect::back()` | `return back()` |
+| `is_null($object->relation) ? null : $object->relation->id` | `$object->relation?->id` |
+| `return view('index')->with('title', $title)->with('client', $client)` | `return view('index', compact('title', 'client'))` |
+| `Carbon::now()`, `Carbon::today()` | `now()`, `today()` |
+| `App::make('Class')` | `app('Class')` |
+| `->where('column', '=', 1)` | `->where('column', 1)` |
+| `->orderBy('created_at', 'desc')` | `->latest()` |
+| `->orderBy('created_at', 'asc')` | `->oldest()` |
+| `->first()->name` | `->value('name')` |
 
 ---
 
-## 27. IoC / Service Container (Dependency Injection)
+## 16. IoC / Service Container (Dependency Injection)
 
-Use **constructor injection** in controllers, services, repositories, and other application classes. Do not use `new Class` or `app(Class)` to resolve dependencies — inject them so the container can manage lifecycle and testing stays simple.
-
----
-
-## 28. Do Not Read .env Directly
-
-Use config files and the `config()` helper instead of `env()` in application code.
-
-**Bad:** `$apiKey = env('API_KEY');`
-
-**Good:** Define `'key' => env('API_KEY')` in `config/api.php`, then use `config('api.key')`.
+Use **constructor injection** for your own application classes (controllers, services, repositories). Do not use `new Class` or `app(Class)` to resolve those. Do **not** inject Laravel facade-backed classes (Http client, Event dispatcher, Notification, Mail, etc.) — use the facades (`Http`, `Event`, `Notification`, `Mail`) so tests can use `Http::fake()`, `Event::fake()`, `Notification::fake()`, and similar; injecting these is redundant and does not improve testability.
 
 ---
 
-## 29. Store Dates in Standard Format
+## 17. Store Dates in Standard Format
 
-Store and pass dates as Carbon instances; use `$casts` for datetime columns. Format only in the display layer (e.g. Blade).
+Store and pass dates as Carbon instances; use a `casts()` method for datetime columns. Format only in the display layer (e.g. Blade).
 
 **Bad:** Formatting or parsing date strings in controllers/helpers.
 
-**Good:** `protected $casts = ['ordered_at' => 'datetime'];` in the model, then `{{ $object->ordered_at->format('m-d') }}` in the view.
+**Good:**
+
+```php
+public function casts(): array
+{
+    return [
+        'ordered_at' => 'datetime'
+    ];
+}
+```
+
+Then in Blade: `{{ $order->ordered_at->format('m-d') }}`.
 
 ---
 
-## 30. Do Not Use DocBlocks
+## 18. Do Not Use DocBlocks
 
 Prefer descriptive method names and type hints over DocBlocks.
 
@@ -488,17 +320,17 @@ Prefer descriptive method names and type hints over DocBlocks.
 
 ---
 
-## 31. Other Good Practices
+## 19. Other Good Practices
 
 - **Never** put logic in route files.
 - Minimize vanilla PHP in Blade templates.
 - Use in-memory DB for testing.
-- Use modern PHP syntax while keeping readability.
+- Use modern PHP 8+ syntax while keeping readability.
 - Avoid View Composers and similar unless necessary; prefer simpler solutions.
 
 ---
 
-## 32. Infrastructure
+## 20. Infrastructure
 
 **All commands must be run inside the Docker container:**
 
@@ -506,7 +338,77 @@ Prefer descriptive method names and type hints over DocBlocks.
 docker compose exec api <command>
 ```
 
-Examples: `composer`, `artisan`, `php`, `pint`, `phpunit`, etc.
+Examples: `composer`, `artisan`, `php`, `php-cs-fixer`, `phpunit`, etc.
 
 ---
 
+## 21. End of Task
+
+At the end of a task:
+
+- Run tests that cover the changed code (e.g. `docker compose exec api php artisan test --filter=...` or the relevant test path).
+- **Formatting and naming:** Check formatting (PSR-12, PHP-CS-Fixer) and Laravel naming for all changed files via the **laravel-formatting-naming** skill — run its end-of-task checklist (PHP-CS-Fixer, PHPStan if applicable, and naming review) so every modified file complies before considering the task complete.
+
+---
+
+## 23. New PHP files and strict types
+
+- When **creating a new** PHP file, always start with `<?php` followed by `declare(strict_types=1);` on the next line (improves type safety).
+- Do **not** add or suggest adding `declare(strict_types=1)` to **existing** files that do not have it — that can introduce breaking changes; leave them as-is.
+
+## 24. API documentation (Scramble)
+
+**Endpoints:**
+
+- When adding or editing API controller methods, add the Scramble `#[Endpoint(...)]` attribute so the endpoint is documented.
+- Use `Dedoc\Scramble\Attributes\Endpoint` with at least `title` and `description` (e.g. `#[Endpoint(title: 'Get item', description: 'Returns a single item by ID.')]`).
+- This keeps OpenAPI docs in sync with the code.
+
+**Query parameters:**
+
+- Use `#[QueryParameter(...)]` (`Dedoc\Scramble\Attributes\QueryParameter`) on controller methods for any query parameter that is **not** declared in a Form Request (e.g. `page`, `per_page` for pagination).
+- Document name, description, type, and optional default/example so Scramble can document the API correctly.
+
+**Form Request properties:**
+
+- Add `@example` to every request property (or to the rules/attributes that are documented) so Scramble and API consumers see example values.
+
+**API Resource classes:**
+
+- Add `@mixin ModelName` to the class docblock so IDEs and Scramble understand the underlying model.
+- For each property in the resource array that is **not** covered by the mixin, add a `@var` in the docblock (e.g. `@var int $status`).
+
+**Int-backed enums in Resources:**
+
+- When exposing an int enum (e.g. status) in a resource, add a docblock above that array entry listing allowed values and their names, plus `@var int`. Example:
+
+```php
+/**
+ * Allowed values:
+ * `0` - PENDING
+ * `1` - APPROVED
+ * `2` - COMPLETED
+ * ...
+ *
+ * @var int
+ */
+'status' => $this->status,
+```
+
+## 25. Custom exceptions and Scramble
+
+**When to use:**
+
+- Prefer **custom exceptions** from `app/Exceptions` over `abort()` / `abort_if()`.
+
+**Structure:**
+
+- Base class: `App\Exceptions\CustomHttpException` (extends `HttpException`).
+- One concrete class per API error; use domain folders when useful (e.g. `App\Exceptions\User\*`).
+- Each class sets `public static $statusCode` and `public static $responseMessage`; the base uses `getStatusCode()` and `getResponseMessage()` (with `__()`) for Scramble.
+
+**Adding a new API error (3 steps):**
+
+1. Add exception class extending `CustomHttpException` with `$statusCode` and `$responseMessage`.
+2. Throw it from controller or called code.
+3. Add `@throws YourException` to the controller method docblock.
