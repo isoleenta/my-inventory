@@ -16,13 +16,17 @@
         "laravel/sanctum": "^4.0",
         "laravel/telescope": "^5.0",
         "laravel/tinker": "^2.9",
-        "predis/predis": "^2.0"
+        "predis/predis": "^2.0",
+        "spatie/laravel-query-builder": "^6.4",
+        "tightenco/ziggy": "^2.0"
     },
     "require-dev": {
         "ergebnis/composer-normalize": "^2.45",
         "fakerphp/faker": "^1.23",
         "friendsofphp/php-cs-fixer": "^3.66",
         "larastan/larastan": "^3.0",
+        "laravel/boost": "^v2.2.1",
+        "laravel/breeze": "^2.3",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",

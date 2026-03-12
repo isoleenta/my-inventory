@@ -3,7 +3,6 @@
 namespace App\Nova;
 
 use App\Models;
-use Illuminate\Validation\Rules;
 use Laravel\Nova\Auth\PasswordValidationRules;
 use Laravel\Nova\Fields;
 use Laravel\Nova\Http\Requests\NovaRequest;
