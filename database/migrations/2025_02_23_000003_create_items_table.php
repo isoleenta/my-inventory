@@ -12,8 +12,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('place');
-            $table->string('custom_place')->nullable();
             $table->string('title');
             $table->text('description')->nullable();
             $table->timestamps();
