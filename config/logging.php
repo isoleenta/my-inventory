@@ -32,7 +32,7 @@ return [
     */
 
     'deprecations' => [
-        'channel' => env('LOG_DEPRECATIONS_CHANNEL', 'null'),
+        'channel' => env('LOG_DEPRECATIONS_CHANNEL', 'null') ?: 'null',
         'trace' => env('LOG_DEPRECATIONS_TRACE', false),
     ],
 
@@ -54,8 +54,15 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', env('LOG_STACK', 'single')),
+            'channels' => array_values(array_filter(array_map(trim(...), explode(',', (string) env('LOG_STACK', 'single'))))) ?: ['single'],
             'ignore_exceptions' => false,
+        ],
+
+        'deprecations' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/deprecations.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
         ],
 
         'single' => [

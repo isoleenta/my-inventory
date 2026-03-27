@@ -1,3 +1,4 @@
+import CurrencyToggle from '@/Components/CurrencyToggle';
 import Dropdown from '@/Components/Dropdown';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
@@ -62,6 +63,9 @@ export default function AuthenticatedLayout({ header, children }) {
                             >
                                 Places
                             </Link>
+                        </div>
+                        <div className="hidden pl-2 sm:block">
+                            <CurrencyToggle />
                         </div>
                         <div className="relative ml-2">
                             <Dropdown>
@@ -144,6 +148,9 @@ export default function AuthenticatedLayout({ header, children }) {
                     }
                 >
                     <div className="space-y-1 px-4 py-3">
+                        <div className="mb-3 flex justify-start">
+                            <CurrencyToggle />
+                        </div>
                         <ResponsiveNavLink
                             href={route('dashboard')}
                             active={route().current('dashboard')}

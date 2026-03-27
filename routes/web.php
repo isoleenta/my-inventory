@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AliExpressImportController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
@@ -47,11 +48,20 @@ Route::middleware('auth:web_user')->group(function () {
     });
 
     Route::prefix('items')->name('items.')->controller(ItemController::class)->group(function () {
+        Route::prefix('imports/aliexpress')
+            ->name('imports.aliexpress.')
+            ->controller(AliExpressImportController::class)
+            ->group(function () {
+                Route::get('/', 'create')->can('create', Item::class)->name('create');
+                Route::post('/preview', 'preview')->can('create', Item::class)->name('preview');
+                Route::post('/', 'store')->can('create', Item::class)->name('store');
+            });
         Route::get('/create', 'create')->can('create', Item::class)->name('create');
         Route::post('/', 'store')->can('create', Item::class)->name('store');
         Route::prefix('{item}')->group(function () {
             Route::get('/', 'show')->can('view', 'item')->name('show');
             Route::get('/edit', 'edit')->can('update', 'item')->name('edit');
+            Route::post('/regenerate', 'regenerate')->can('update', 'item')->name('regenerate');
             Route::put('/', 'update')->can('update', 'item')->name('update');
             Route::patch('/', 'update')->can('update', 'item')->name('patch');
             Route::delete('/', 'destroy')->can('delete', 'item')->name('destroy');

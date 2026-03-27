@@ -32,6 +32,7 @@ class StoreItemRequest extends FormRequest
                 Rule::exists('places', 'id')->where('user_id', $this->user('web_user')->id),
             ],
             'price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
+            'price_currency' => ['nullable', 'string', Rule::in(['USD', 'UAH'])],
             'photos' => ['nullable', 'array', 'max:10'],
             'photos.*' => ['image', 'max:5120'],
             'details' => ['nullable', 'array'],
@@ -49,6 +50,7 @@ class StoreItemRequest extends FormRequest
             description: $v['description'] ?? null,
             category_id: isset($v['category_id']) ? (int) $v['category_id'] : null,
             price: isset($v['price']) ? (string) $v['price'] : null,
+            price_currency: isset($v['price_currency']) ? (string) $v['price_currency'] : 'USD',
             details: $v['details'] ?? []
         );
     }

@@ -25,6 +25,7 @@ class Item extends Model
     {
         return [
             'details' => 'array',
+            'price' => 'decimal:2',
         ];
     }
 

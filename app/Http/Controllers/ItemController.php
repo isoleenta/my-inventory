@@ -76,6 +76,13 @@ class ItemController extends Controller
             ->with('success', __('Item updated.'));
     }
 
+    public function regenerate(Request $request, Item $item): RedirectResponse
+    {
+        $this->itemService->regenerateTitleAndCategory($request->user('web_user'), $item);
+
+        return redirect()->route('items.show', $item)->with('success', __('Title and category regenerated.'));
+    }
+
     public function destroy(Item $item): RedirectResponse
     {
         $placeId = $item->place_id;

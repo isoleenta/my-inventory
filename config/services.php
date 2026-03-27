@@ -31,4 +31,17 @@ return [
         ],
     ],
 
+    'ollama' => [
+        'base_url' => env('OLLAMA_BASE_URL', 'http://127.0.0.1:11434'),
+        'model' => env('OLLAMA_MODEL', 'llama3.2:3b'),
+        'timeout' => (int) env('OLLAMA_TIMEOUT', 120),
+    ],
+
+    'nbu' => [
+        'endpoint' => env('NBU_EXCHANGE_ENDPOINT', 'https://bank.gov.ua/NBU_Exchange/exchange_site'),
+        'timeout' => (int) env('NBU_TIMEOUT', 10),
+        'cache_ttl_seconds' => (int) env('NBU_CACHE_TTL_SECONDS', 21600),
+        'fallback_usd_to_uah_rate' => env('NBU_FALLBACK_USD_TO_UAH_RATE'),
+    ],
+
 ];

@@ -16,6 +16,7 @@ final class ItemData
         public readonly ?string $description = null,
         public readonly ?int $category_id = null,
         public readonly ?string $price = null,
+        public readonly string $price_currency = 'USD',
         public readonly array $details = []
     ) {}
 

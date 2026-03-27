@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatPrice, useDisplayCurrency } from '@/lib/currency';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -12,10 +13,25 @@ const PLACEHOLDER_SVG = (
     </svg>
 );
 
+function formatBoughtOn(value) {
+    if (!value) {
+        return null;
+    }
+
+    return new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
+}
+
 export default function ShowItem({ item }) {
     const [photoIndex, setPhotoIndex] = useState(0);
     const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+    const [isRegenerating, setIsRegenerating] = useState(false);
+    const { displayCurrency, usdToUahRate } = useDisplayCurrency();
     const placeLabel = item.place?.name ?? '—';
+    const purchasedOn = formatBoughtOn(item.details?._purchased_on);
     const photos = item.photos ?? [];
     const hasMultiple = photos.length > 1;
     const currentPhoto = photos[photoIndex];
@@ -203,9 +219,16 @@ export default function ShowItem({ item }) {
                                 {item.category && (
                                     <span>Category: {item.category.name}</span>
                                 )}
+                                {purchasedOn && (
+                                    <span>Bought: {purchasedOn}</span>
+                                )}
                                 {item.price != null && item.price !== '' && (
                                     <span className="font-medium text-primary">
-                                        ${Number(item.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        {formatPrice(item.price, {
+                                            sourceCurrency: 'USD',
+                                            displayCurrency,
+                                            usdToUahRate,
+                                        })}
                                     </span>
                                 )}
                             </div>
@@ -274,6 +297,28 @@ export default function ShowItem({ item }) {
                                 >
                                     Edit
                                 </Link>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (isRegenerating) {
+                                            return;
+                                        }
+
+                                        router.post(
+                                            route('items.regenerate', item.id),
+                                            {},
+                                            {
+                                                preserveScroll: true,
+                                                onStart: () => setIsRegenerating(true),
+                                                onFinish: () => setIsRegenerating(false),
+                                            }
+                                        );
+                                    }}
+                                    disabled={isRegenerating}
+                                    className="rounded-lg border border-primary/40 bg-primary/10 px-5 py-2.5 text-sm font-medium text-primary transition hover:bg-primary/15 disabled:pointer-events-none disabled:opacity-50"
+                                >
+                                    {isRegenerating ? 'Regenerating…' : 'Regenerate with Ollama'}
+                                </button>
                                 <Link
                                     href={route('inventory.show', {
                                         place: item.place_id ?? item.place?.id,

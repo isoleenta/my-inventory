@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatPrice, useDisplayCurrency } from '@/lib/currency';
 import { Head, Link } from '@inertiajs/react';
 
 function StatCard({ icon, label, value, sub, href, className = '' }) {
@@ -31,6 +32,7 @@ function StatCard({ icon, label, value, sub, href, className = '' }) {
 }
 
 export default function Dashboard({ stats, places, categoriesWithStats }) {
+    const { displayCurrency, usdToUahRate } = useDisplayCurrency();
     const { totalItems, categoriesCount } = stats ?? {};
     const placesWithItems = (places ?? []).filter((p) => p.count > 0);
     const maxPlaceCount = Math.max(1, ...placesWithItems.map((p) => p.count));
@@ -102,12 +104,10 @@ export default function Dashboard({ stats, places, categoriesWithStats }) {
                                                     : ''}
                                             </span>
                                             <span className="font-medium text-primary">
-                                                $
-                                                {Number(
-                                                    cat.items_sum_price ?? 0
-                                                ).toLocaleString('en-US', {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2,
+                                                {formatPrice(cat.items_sum_price ?? 0, {
+                                                    sourceCurrency: 'USD',
+                                                    displayCurrency,
+                                                    usdToUahRate,
                                                 })}
                                             </span>
                                         </span>

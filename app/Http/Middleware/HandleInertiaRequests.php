@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\CurrencyRateService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -33,6 +34,10 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user('web_user'),
+            ],
+            'currency' => fn () => [
+                'storage_currency' => CurrencyRateService::USD,
+                'nbu' => app(CurrencyRateService::class)->getUsdToUahRatePayload(),
             ],
         ];
     }

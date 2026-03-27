@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { formatPrice, useDisplayCurrency } from '@/lib/currency';
 import { useState } from 'react';
 
 const PLACEHOLDER_SVG = (
@@ -13,6 +14,7 @@ const PLACEHOLDER_SVG = (
 
 export default function ItemCard({ item }) {
     const [photoIndex, setPhotoIndex] = useState(0);
+    const { displayCurrency, usdToUahRate } = useDisplayCurrency();
     const photos = item.photos ?? [];
     const hasMultiple = photos.length > 1;
     const currentPhoto = photos[photoIndex];
@@ -87,7 +89,11 @@ export default function ItemCard({ item }) {
                         {item.category && <span>{item.category.name}</span>}
                         {item.price != null && item.price !== '' && (
                             <span className="font-medium text-primary">
-                                ${Number(item.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatPrice(item.price, {
+                                    sourceCurrency: 'USD',
+                                    displayCurrency,
+                                    usdToUahRate,
+                                })}
                             </span>
                         )}
                     </div>

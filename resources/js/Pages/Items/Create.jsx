@@ -4,6 +4,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { categoryTreeOptions } from '@/lib/categoryTree';
+import { USD } from '@/lib/currency';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 const inputClass =
@@ -18,6 +19,7 @@ export default function CreateItem({ categories = [], placeOptions = {} }) {
         category_id: '',
         place_id: firstPlaceId,
         price: '',
+        price_currency: USD,
         details: {},
         photos: [],
     });
@@ -43,6 +45,7 @@ export default function CreateItem({ categories = [], placeOptions = {} }) {
                 category_id: d.category_id ? parseInt(d.category_id, 10) : null,
                 place_id: d.place_id ? parseInt(d.place_id, 10) : null,
                 price: (d.price && String(d.price).trim()) ? d.price : null,
+                price_currency: d.price && String(d.price).trim() ? d.price_currency : USD,
             };
             if (addAnother) payload.add_another = true;
             return payload;
@@ -212,16 +215,30 @@ export default function CreateItem({ categories = [], placeOptions = {} }) {
 
                         <div>
                             <InputLabel htmlFor="price" value="Price (optional)" />
-                            <TextInput
-                                id="price"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={data.price}
-                                onChange={(e) => setData('price', e.target.value)}
-                                className="mt-1 block w-full"
-                            />
+                            <div className="mt-1 grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
+                                <TextInput
+                                    id="price"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={data.price}
+                                    onChange={(e) => setData('price', e.target.value)}
+                                    className="block w-full"
+                                />
+                                <select
+                                    value={data.price_currency}
+                                    onChange={(e) => setData('price_currency', e.target.value)}
+                                    className={inputClass}
+                                >
+                                    <option value="USD">USD</option>
+                                    <option value="UAH">UAH</option>
+                                </select>
+                            </div>
+                            <p className="mt-2 text-sm text-gray-500">
+                                UAH prices are converted to USD on save using the current NBU rate.
+                            </p>
                             <InputError message={errors.price} className="mt-2" />
+                            <InputError message={errors.price_currency} className="mt-2" />
                         </div>
 
                         <div>
