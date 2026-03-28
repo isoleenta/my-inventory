@@ -32,8 +32,14 @@ class UpdateItemRequest extends FormRequest
                 Rule::exists('places', 'id')->where('user_id', $this->user('web_user')->id),
             ],
             'price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
+            'price_currency' => ['nullable', 'string', Rule::in(['USD', 'UAH'])],
+            'purchased_on' => ['nullable', 'date'],
             'photos' => ['nullable', 'array', 'max:10'],
             'photos.*' => ['image', 'max:5120'],
+            'photo_order' => ['nullable', 'array'],
+            'photo_order.*' => ['string', 'regex:/^(existing|new):\d+$/'],
+            'removed_photo_ids' => ['nullable', 'array'],
+            'removed_photo_ids.*' => ['integer'],
             'details' => ['nullable', 'array'],
             'details.*' => ['nullable', 'string', 'max:1000'],
         ];
@@ -49,7 +55,11 @@ class UpdateItemRequest extends FormRequest
             description: $v['description'] ?? null,
             category_id: isset($v['category_id']) ? (int) $v['category_id'] : null,
             price: isset($v['price']) ? (string) $v['price'] : null,
-            details: $v['details'] ?? []
+            price_currency: isset($v['price_currency']) ? (string) $v['price_currency'] : 'USD',
+            purchased_on: $v['purchased_on'] ?? null,
+            details: $v['details'] ?? [],
+            photo_order: $v['photo_order'] ?? [],
+            removed_photo_ids: array_map('intval', $v['removed_photo_ids'] ?? []),
         );
     }
 }

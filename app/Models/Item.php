@@ -18,6 +18,7 @@ class Item extends Model
         'title',
         'description',
         'price',
+        'purchased_on',
         'details',
     ];
 
@@ -25,6 +26,8 @@ class Item extends Model
     {
         return [
             'details' => 'array',
+            'price' => 'decimal:2',
+            'purchased_on' => 'date:Y-m-d',
         ];
     }
 

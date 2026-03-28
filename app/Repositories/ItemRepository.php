@@ -7,7 +7,7 @@ use App\Models\Item;
 use App\Models\ItemPhoto;
 use App\Models\Place;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\AllowedSort;
@@ -19,10 +19,7 @@ final class ItemRepository
         private readonly CategoryRepository $categoryRepository
     ) {}
 
-    /**
-     * @return Collection<int, Item>
-     */
-    public function getByUserWithQueryBuilder(User $user, Request $request): Collection
+    public function getByUserWithQueryBuilder(User $user, Request $request): LengthAwarePaginator
     {
         $baseQuery = Item::query()->where('user_id', $user->id);
         $categoryRepository = $this->categoryRepository;
@@ -72,7 +69,8 @@ final class ItemRepository
             ])
             ->defaultSort('title')
             ->with(['category', 'place', 'photos'])
-            ->get();
+            ->paginate(36)
+            ->withQueryString();
     }
 
     public function findByIdAndUser(int $id, User $user): ?Item

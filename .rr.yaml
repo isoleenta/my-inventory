@@ -1,0 +1,58 @@
+version: '3'
+
+metrics:
+  address: 127.0.0.1:2112
+
+# ----------------------------
+# 📡 HTTP Server (Laravel Octane)
+# ----------------------------
+http:
+  address: '0.0.0.0:8080'
+
+  # Overwritten by Octane
+  middleware:
+    - gzip          # Enable GZIP compression
+    - static        # Serve static files from /public
+
+  static:
+    dir: public
+    forbid:
+      - .php
+      - .htaccess
+      - .env
+      - composer.*
+      - artisan
+
+# ----------------------------
+# 🧠 Worker Pool (PHP processes)
+# ----------------------------
+pool:
+  num_workers: 0                # Auto-determine from available CPUs
+  max_jobs: 64                  # Recycle worker after N requests
+  allocate_timeout: 30s         # Time to wait for worker allocation
+  destroy_timeout: 30s          # Time to wait before killing stuck worker
+
+  dynamic_allocator:
+    max_workers: 8              # Maximum number of concurrent workers
+    spawn_rate: 2               # New workers per allocation cycle
+    idle_timeout: 10s           # Time before unused worker is removed
+
+  supervisor:
+    watch_tick: 1s              # Check workers every second
+    idle_ttl: 10s               # Allow idle workers to live for 10s
+    max_worker_memory: 128      # Recycle worker if it exceeds 128MB
+    exec_ttl: 60s               # Kill long-running jobs (hard timeout)
+
+# ----------------------------
+# ⚡ RPC for Octane control
+# ----------------------------
+rpc:
+  listen: tcp://127.0.0.1:6081
+
+# ----------------------------
+# 🪵 Logging
+# ----------------------------
+logs:
+  mode: production              # Use production log format
+  level: warn                   # Log warnings and errors
+  output: stderr                # Print logs to stderr (Docker-friendly)

@@ -1,6 +1,7 @@
 import ItemCard from '@/Components/ItemCard';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { categoryTreeOptions } from '@/lib/categoryTree';
+import { UAH, USD, formatPriceInput, useDisplayCurrency } from '@/lib/currency';
 import { Head, Link, router } from '@inertiajs/react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -31,6 +32,11 @@ function buildParams(filters, sort) {
 }
 
 export default function InventoryIndex({ items, categories, placeOptions, filters, sort }) {
+    const { displayCurrency, usdToUahRate } = useDisplayCurrency();
+    const itemList = items?.data ?? [];
+    const currentPage = items?.current_page ?? 1;
+    const lastPage = items?.last_page ?? 1;
+    const totalItems = items?.total ?? itemList.length;
     const categoryOptions = categoryTreeOptions(categories ?? []);
     const [localName, setLocalName] = useState(filters?.name ?? '');
     const [localPriceMin, setLocalPriceMin] = useState(filters?.price_min ?? '');
@@ -40,11 +46,23 @@ export default function InventoryIndex({ items, categories, placeOptions, filter
         setLocalName(filters?.name ?? '');
     }, [filters?.name]);
     useEffect(() => {
-        setLocalPriceMin(filters?.price_min ?? '');
-    }, [filters?.price_min]);
+        setLocalPriceMin(
+            formatPriceInput(filters?.price_min ?? '', {
+                sourceCurrency: USD,
+                displayCurrency,
+                usdToUahRate,
+            })
+        );
+    }, [filters?.price_min, displayCurrency, usdToUahRate]);
     useEffect(() => {
-        setLocalPriceMax(filters?.price_max ?? '');
-    }, [filters?.price_max]);
+        setLocalPriceMax(
+            formatPriceInput(filters?.price_max ?? '', {
+                sourceCurrency: USD,
+                displayCurrency,
+                usdToUahRate,
+            })
+        );
+    }, [filters?.price_max, displayCurrency, usdToUahRate]);
 
     const hasActiveFilters =
         (filters?.category_id != null && filters.category_id !== '') ||
@@ -84,11 +102,19 @@ export default function InventoryIndex({ items, categories, placeOptions, filter
     }, [localName, filters, sort, apply]);
 
     const handlePriceBlur = useCallback(() => {
-        const min = localPriceMin || undefined;
-        const max = localPriceMax || undefined;
+        const min = formatPriceInput(localPriceMin || '', {
+            sourceCurrency: displayCurrency,
+            displayCurrency: USD,
+            usdToUahRate,
+        }) || undefined;
+        const max = formatPriceInput(localPriceMax || '', {
+            sourceCurrency: displayCurrency,
+            displayCurrency: USD,
+            usdToUahRate,
+        }) || undefined;
         if (min === (filters?.price_min ?? undefined) && max === (filters?.price_max ?? undefined)) return;
         apply({ ...filters, price_min: min, price_max: max }, sort);
-    }, [localPriceMin, localPriceMax, filters, sort, apply]);
+    }, [localPriceMin, localPriceMax, displayCurrency, usdToUahRate, filters, sort, apply]);
 
     const clearFilters = () => {
         setLocalName('');
@@ -96,6 +122,17 @@ export default function InventoryIndex({ items, categories, placeOptions, filter
         setLocalPriceMax('');
         router.get(route('inventory.index'));
     };
+
+    const goToPage = useCallback(
+        (page) => {
+            router.get(
+                route('inventory.index'),
+                { ...buildParams(filters, sort), page },
+                { preserveState: false, preserveScroll: true }
+            );
+        },
+        [filters, sort]
+    );
 
     return (
         <AuthenticatedLayout>
@@ -126,6 +163,12 @@ export default function InventoryIndex({ items, categories, placeOptions, filter
                             </option>
                         ))}
                     </select>
+                    <Link
+                        href={route('items.imports.aliexpress.create')}
+                        className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-primary/40 bg-primary/10 px-4 text-sm font-semibold text-primary transition hover:border-primary hover:bg-primary/15"
+                    >
+                        Import AliExpress
+                    </Link>
                     <Link
                         href={route('items.create')}
                         className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-primary px-5 text-sm font-semibold text-black shadow-lg shadow-primary/25 transition hover:bg-primary-light hover:shadow-primary/30"
@@ -199,7 +242,7 @@ export default function InventoryIndex({ items, categories, placeOptions, filter
                             </div>
                             <div>
                                 <label htmlFor="filter-price-min" className="mb-1 block text-xs font-medium text-gray-400">
-                                    Price min
+                                    Price min ({displayCurrency === UAH ? 'UAH' : 'USD'})
                                 </label>
                                 <input
                                     id="filter-price-min"
@@ -215,7 +258,7 @@ export default function InventoryIndex({ items, categories, placeOptions, filter
                             </div>
                             <div>
                                 <label htmlFor="filter-price-max" className="mb-1 block text-xs font-medium text-gray-400">
-                                    Price max
+                                    Price max ({displayCurrency === UAH ? 'UAH' : 'USD'})
                                 </label>
                                 <input
                                     id="filter-price-max"
@@ -243,7 +286,7 @@ export default function InventoryIndex({ items, categories, placeOptions, filter
                 </aside>
 
                 <main className="min-w-0 flex-1">
-                    {items.length === 0 ? (
+                    {itemList.length === 0 ? (
                         <div className="rounded-xl border border-white/10 bg-surface p-10 text-center">
                             <p className="text-gray-400">
                                 {hasActiveFilters
@@ -270,15 +313,38 @@ export default function InventoryIndex({ items, categories, placeOptions, filter
                     ) : (
                         <>
                             <p className="mb-3 text-sm text-gray-400">
-                                {items.length} item{items.length !== 1 ? 's' : ''}
+                                {totalItems} item{totalItems !== 1 ? 's' : ''}
                             </p>
                             <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                                {items.map((item) => (
+                                {itemList.map((item) => (
                                     <li key={item.id}>
                                         <ItemCard item={item} />
                                     </li>
                                 ))}
                             </ul>
+                            {lastPage > 1 && (
+                                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => goToPage(currentPage - 1)}
+                                        disabled={currentPage <= 1}
+                                        className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-gray-200 transition hover:bg-white/10 disabled:pointer-events-none disabled:opacity-50"
+                                    >
+                                        Previous
+                                    </button>
+                                    <p className="text-sm text-gray-400">
+                                        Page {currentPage} of {lastPage}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => goToPage(currentPage + 1)}
+                                        disabled={currentPage >= lastPage}
+                                        className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-gray-200 transition hover:bg-white/10 disabled:pointer-events-none disabled:opacity-50"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            )}
                         </>
                     )}
                 </main>

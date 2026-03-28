@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, usePage } from '@inertiajs/react';
+import { formatPrice } from '@/lib/currency';
 import Layout from '../Layouts/Layout';
 
 const BENTO_CARD_CLASS = 'border border-white/10 bg-surface backdrop-blur-sm transition hover:border-primary/30 hover:bg-surface-light';
@@ -301,7 +302,7 @@ export default function Home() {
                                                     <span>{item.placeLabel}</span>
                                                     {item.price != null && (
                                                         <span className="font-medium text-primary">
-                                                            ${Number(item.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            {formatPrice(item.price)}
                                                         </span>
                                                     )}
                                                 </div>

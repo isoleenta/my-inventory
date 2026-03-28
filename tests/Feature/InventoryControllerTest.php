@@ -32,7 +32,7 @@ class InventoryControllerTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Inventory/Index')
-            ->has('items')
+            ->has('items.data')
             ->has('categories')
             ->has('placeOptions')
             ->has('filters')
@@ -83,9 +83,35 @@ class InventoryControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
-            ->has('items')
-            ->where('items.0.id', $itemInChild->id)
-            ->where('items.0.title', 'Item in child')
+            ->has('items.data')
+            ->where('items.data.0.id', $itemInChild->id)
+            ->where('items.data.0.title', 'Item in child')
+        );
+    }
+
+    public function test_inventory_index_is_paginated(): void
+    {
+        $user = $this->createUser();
+        $place = Place::create(['user_id' => $user->id, 'name' => 'Warehouse']);
+
+        foreach (range(1, 40) as $number) {
+            Item::create([
+                'user_id' => $user->id,
+                'place_id' => $place->id,
+                'title' => sprintf('Item %02d', $number),
+                'details' => [],
+            ]);
+        }
+
+        $response = $this->actingAs($user, 'web_user')
+            ->get(route('inventory.index'));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->has('items.data', 36)
+            ->where('items.current_page', 1)
+            ->where('items.last_page', 2)
+            ->where('items.total', 40)
         );
     }
 

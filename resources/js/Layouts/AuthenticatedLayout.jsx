@@ -1,10 +1,13 @@
+import CurrencyToggle from '@/Components/CurrencyToggle';
 import Dropdown from '@/Components/Dropdown';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+    const page = usePage();
+    const user = page.props.auth.user;
+    const flash = page.props.flash;
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -62,6 +65,9 @@ export default function AuthenticatedLayout({ header, children }) {
                             >
                                 Places
                             </Link>
+                        </div>
+                        <div className="hidden pl-2 sm:block">
+                            <CurrencyToggle />
                         </div>
                         <div className="relative ml-2">
                             <Dropdown>
@@ -144,6 +150,9 @@ export default function AuthenticatedLayout({ header, children }) {
                     }
                 >
                     <div className="space-y-1 px-4 py-3">
+                        <div className="mb-3 flex justify-start">
+                            <CurrencyToggle />
+                        </div>
                         <ResponsiveNavLink
                             href={route('dashboard')}
                             active={route().current('dashboard')}
@@ -205,6 +214,22 @@ export default function AuthenticatedLayout({ header, children }) {
             )}
 
             <main className="mx-auto flex-1 w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                {flash?.success ? (
+                    <div
+                        className="mb-4 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary"
+                        role="status"
+                    >
+                        {flash.success}
+                    </div>
+                ) : null}
+                {flash?.error ? (
+                    <div
+                        className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+                        role="alert"
+                    >
+                        {flash.error}
+                    </div>
+                ) : null}
                 {children}
             </main>
 
