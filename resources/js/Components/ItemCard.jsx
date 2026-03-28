@@ -36,6 +36,7 @@ export default function ItemCard({ item }) {
     return (
         <Link
             href={route('items.show', item.id)}
+            aria-label={item.title ? String(item.title) : 'View item'}
             className="group block overflow-hidden rounded-xl border border-white/10 bg-surface transition hover:border-primary/30 hover:bg-surface-light"
         >
             <div className="flex flex-col sm:flex-row">
@@ -82,10 +83,7 @@ export default function ItemCard({ item }) {
                     )}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-center p-4 pr-6">
-                    <span className="font-medium text-white group-hover:text-primary">
-                        {item.title}
-                    </span>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-gray-500">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-gray-500">
                         {item.category && <span>{item.category.name}</span>}
                         {item.price != null && item.price !== '' && (
                             <span className="font-medium text-primary">

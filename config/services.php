@@ -34,7 +34,7 @@ return [
     'ollama' => [
         'base_url' => env('OLLAMA_BASE_URL', 'http://127.0.0.1:11434'),
         'model' => env('OLLAMA_MODEL', 'llama3.2:3b'),
-        'timeout' => (int) env('OLLAMA_TIMEOUT', 120),
+        'timeout' => (int) env('OLLAMA_TIMEOUT', 600),
     ],
 
     'nbu' => [

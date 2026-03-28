@@ -39,6 +39,10 @@ class HandleInertiaRequests extends Middleware
                 'storage_currency' => CurrencyRateService::USD,
                 'nbu' => app(CurrencyRateService::class)->getUsdToUahRatePayload(),
             ],
+            'flash' => fn () => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+            ],
         ];
     }
 }

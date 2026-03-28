@@ -103,4 +103,73 @@ class ItemControllerTest extends TestCase
         $this->assertSame('12.34', (string) $item->price);
         $this->assertSame('2026-02-22', $item->details['_purchased_on'] ?? null);
     }
+
+    public function test_regenerate_shows_error_when_ollama_returns_error_status(): void
+    {
+        $user = $this->createUser();
+        $place = Place::create(['user_id' => $user->id, 'name' => 'Office']);
+        $category = Category::create(['user_id' => $user->id, 'name' => 'Misc', 'fields' => []]);
+        $item = Item::create([
+            'user_id' => $user->id,
+            'place_id' => $place->id,
+            'category_id' => $category->id,
+            'title' => 'Original Title',
+            'description' => null,
+            'price' => null,
+            'details' => [],
+        ]);
+
+        Http::fake([
+            rtrim((string) config('services.ollama.base_url'), '/').'/api/generate' => Http::response('', 503),
+        ]);
+
+        $response = $this->actingAs($user, 'web_user')
+            ->post(route('items.regenerate', $item));
+
+        $response->assertRedirect(route('items.show', $item));
+        $response->assertSessionHas('error');
+
+        $item->refresh();
+
+        $this->assertSame('Original Title', $item->title);
+    }
+
+    public function test_regenerate_parses_json_wrapped_in_markdown_fence(): void
+    {
+        $user = $this->createUser();
+        $place = Place::create(['user_id' => $user->id, 'name' => 'Office']);
+        $category = Category::create(['user_id' => $user->id, 'name' => 'Misc', 'fields' => []]);
+        $matchedCategory = Category::create(['user_id' => $user->id, 'name' => 'Audio', 'fields' => []]);
+        $item = Item::create([
+            'user_id' => $user->id,
+            'place_id' => $place->id,
+            'category_id' => $category->id,
+            'title' => 'Wireless Earbuds Bluetooth',
+            'description' => null,
+            'price' => null,
+            'details' => [],
+        ]);
+
+        $inner = json_encode([
+            'cleaned_title' => 'Wireless Earbuds',
+            'category_id' => $matchedCategory->id,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        Http::fake([
+            rtrim((string) config('services.ollama.base_url'), '/').'/api/generate' => Http::response(
+                ['response' => "```json\n".$inner."\n```"],
+                200
+            ),
+        ]);
+
+        $response = $this->actingAs($user, 'web_user')
+            ->post(route('items.regenerate', $item));
+
+        $response->assertRedirect(route('items.show', $item));
+        $response->assertSessionHas('success', 'Title and category regenerated.');
+
+        $item->refresh();
+
+        $this->assertSame('Wireless Earbuds', $item->title);
+        $this->assertSame($matchedCategory->id, $item->category_id);
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\OllamaRegenerationFailedException;
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
@@ -11,12 +12,20 @@ final class OllamaProductEnricher
     /**
      * @param  Collection<int, Category>  $categories
      * @return array{title: string, category_id: int|null, category_name: string|null}
+     *
+     * @throws OllamaRegenerationFailedException
      */
     public function enrich(string $title, Collection $categories): array
     {
         $originalTitle = $this->normalizeTitle($title);
         $categoryMap = $this->buildCategoryMap($categories);
         $response = $this->requestEnrichment($originalTitle, $categoryMap);
+
+        if ($response === null) {
+            throw new OllamaRegenerationFailedException(
+                __('Could not read a valid JSON response from Ollama. If the app runs in Docker, set OLLAMA_BASE_URL to http://host.docker.internal:11434 (127.0.0.1 inside the container is not your host).')
+            );
+        }
 
         $cleanedTitle = $this->normalizeTitle((string) ($response['cleaned_title'] ?? ''));
         if ($cleanedTitle === '') {
@@ -38,20 +47,30 @@ final class OllamaProductEnricher
 
     /**
      * @param  array<int, array{name: string, path: string}>  $categoryMap
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    private function requestEnrichment(string $title, array $categoryMap): array
+    private function requestEnrichment(string $title, array $categoryMap): ?array
     {
         $baseUrl = rtrim((string) config('services.ollama.base_url'), '/');
         $model = trim((string) config('services.ollama.model'));
-        $timeout = max((int) config('services.ollama.timeout', 120), 1);
+        $timeout = max((int) config('services.ollama.timeout', 600), 1);
 
-        if ($title === '' || $baseUrl === '' || $model === '') {
-            return [];
+        if ($title === '') {
+            throw new OllamaRegenerationFailedException(__('Cannot regenerate: the item has no title.'));
+        }
+
+        if ($baseUrl === '' || $model === '') {
+            throw new OllamaRegenerationFailedException(
+                __('Ollama is not configured. Set OLLAMA_BASE_URL and OLLAMA_MODEL in your environment.')
+            );
         }
 
         try {
-            $response = Http::connectTimeout(min($timeout, 10))
+            if (function_exists('set_time_limit')) {
+                set_time_limit($timeout + 120);
+            }
+
+            $response = Http::connectTimeout(min($timeout, 30))
                 ->timeout($timeout)
                 ->acceptJson()
                 ->post($baseUrl.'/api/generate', [
@@ -65,16 +84,104 @@ final class OllamaProductEnricher
                 ]);
 
             if (! $response->successful()) {
-                return [];
+                return null;
             }
 
-            $content = (string) $response->json('response');
-            $decoded = json_decode($content, true);
+            $raw = $response->json('response');
+            if (! is_string($raw) || trim($raw) === '') {
+                return null;
+            }
 
-            return is_array($decoded) ? $decoded : [];
+            $decoded = $this->decodeModelJsonFromContent($raw);
+
+            return $decoded;
+        } catch (OllamaRegenerationFailedException $e) {
+            throw $e;
         } catch (\Throwable) {
-            return [];
+            return null;
         }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeModelJsonFromContent(string $content): ?array
+    {
+        $content = trim($content);
+        $content = preg_replace('/^```(?:json)?\s*/i', '', $content) ?? $content;
+        $content = preg_replace('/\s*```\s*$/', '', $content) ?? $content;
+        $content = trim($content);
+
+        $decoded = json_decode($content, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $this->normalizeDecodedModelKeys($decoded);
+        }
+
+        $start = strpos($content, '{');
+        if ($start === false) {
+            return null;
+        }
+
+        $depth = 0;
+        $inString = false;
+        $escape = false;
+        $len = strlen($content);
+
+        for ($i = $start; $i < $len; $i++) {
+            $c = $content[$i];
+
+            if ($inString) {
+                if ($escape) {
+                    $escape = false;
+                } elseif ($c === '\\') {
+                    $escape = true;
+                } elseif ($c === '"') {
+                    $inString = false;
+                }
+
+                continue;
+            }
+
+            if ($c === '"') {
+                $inString = true;
+
+                continue;
+            }
+
+            if ($c === '{') {
+                $depth++;
+            } elseif ($c === '}') {
+                $depth--;
+                if ($depth === 0) {
+                    $slice = substr($content, $start, $i - $start + 1);
+                    $decoded = json_decode($slice, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        return $this->normalizeDecodedModelKeys($decoded);
+                    }
+
+                    return null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $decoded
+     * @return array<string, mixed>
+     */
+    private function normalizeDecodedModelKeys(array $decoded): array
+    {
+        if (! array_key_exists('cleaned_title', $decoded) && array_key_exists('cleanedTitle', $decoded)) {
+            $decoded['cleaned_title'] = $decoded['cleanedTitle'];
+        }
+
+        if (! array_key_exists('category_id', $decoded) && array_key_exists('categoryId', $decoded)) {
+            $decoded['category_id'] = $decoded['categoryId'];
+        }
+
+        return $decoded;
     }
 
     /**
@@ -93,7 +200,7 @@ final class OllamaProductEnricher
         );
 
         return implode("\n\n", [
-            'You clean imported ecommerce product titles and pick the best matching inventory category.',
+            'You clean imported ecommerce product titles and pick the best matching and detailed inventory category.',
             'Return strict JSON with exactly these keys: cleaned_title, category_id.',
             'Rules:',
             '- Keep the cleaned title concise and natural.',

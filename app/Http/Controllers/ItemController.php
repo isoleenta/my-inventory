@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\OllamaRegenerationFailedException;
 use App\Http\Requests\StoreItemRequest;
 use App\Http\Requests\UpdateItemRequest;
 use App\Models\Item;
@@ -78,7 +79,11 @@ class ItemController extends Controller
 
     public function regenerate(Request $request, Item $item): RedirectResponse
     {
-        $this->itemService->regenerateTitleAndCategory($request->user('web_user'), $item);
+        try {
+            $this->itemService->regenerateTitleAndCategory($request->user('web_user'), $item);
+        } catch (OllamaRegenerationFailedException $e) {
+            return redirect()->route('items.show', $item)->with('error', $e->getMessage());
+        }
 
         return redirect()->route('items.show', $item)->with('success', __('Title and category regenerated.'));
     }
