@@ -52,11 +52,7 @@ final class ItemService
     public function create(User $user, ItemData $data, array $photos = []): Item
     {
         $item = $this->itemRepository->create($user, $this->normalizeForStorage($data));
-
-        foreach ($photos as $index => $file) {
-            $path = $this->storePhoto($item, $file, $index);
-            $this->itemRepository->addPhoto($item, $path, $index);
-        }
+        $this->syncPhotos($item, $photos, $data->photo_order);
 
         return $item->fresh(['category', 'place', 'photos']);
     }
@@ -72,13 +68,14 @@ final class ItemService
     public function update(Item $item, ItemData $data, array $newPhotos = []): Item
     {
         $item = $this->itemRepository->update($item, $this->normalizeForStorage($data));
+        $item->loadMissing('photos');
 
-        $maxOrder = $item->photos->max('order') ?? -1;
-        foreach ($newPhotos as $index => $file) {
-            $maxOrder++;
-            $path = $this->storePhoto($item, $file, $maxOrder);
-            $this->itemRepository->addPhoto($item, $path, $maxOrder);
+        foreach ($item->photos->whereIn('id', $data->removed_photo_ids) as $photo) {
+            $this->deletePhoto($photo);
         }
+
+        $item = $item->fresh(['category', 'place', 'photos']);
+        $this->syncPhotos($item, $newPhotos, $data->photo_order);
 
         return $item->fresh(['category', 'place', 'photos']);
     }
@@ -97,6 +94,7 @@ final class ItemService
             category_id: $enrichment['category_id'] ?? $item->category_id,
             price: $item->price !== null ? (string) $item->price : null,
             price_currency: CurrencyRateService::USD,
+            purchased_on: $item->purchased_on?->format('Y-m-d'),
             details: $item->details ?? []
         ));
     }
@@ -169,8 +167,83 @@ final class ItemService
             category_id: $data->category_id,
             price: $price,
             price_currency: CurrencyRateService::USD,
-            details: $data->details
+            purchased_on: $data->purchased_on,
+            details: $data->details,
+            photo_order: $data->photo_order,
+            removed_photo_ids: $data->removed_photo_ids
         );
+    }
+
+    /**
+     * @param  array<int, UploadedFile>  $newPhotos
+     * @param  array<int, string>  $photoOrder
+     */
+    private function syncPhotos(Item $item, array $newPhotos, array $photoOrder): void
+    {
+        $item->loadMissing('photos');
+
+        if ($photoOrder === []) {
+            $maxOrder = $item->photos->max('order') ?? -1;
+
+            foreach ($newPhotos as $file) {
+                $maxOrder++;
+                $path = $this->storePhoto($item, $file, $maxOrder);
+                $this->itemRepository->addPhoto($item, $path, $maxOrder);
+            }
+
+            return;
+        }
+
+        $existingPhotos = $item->photos->keyBy('id');
+        $usedExistingIds = [];
+        $usedNewIndexes = [];
+        $order = 0;
+
+        foreach ($photoOrder as $token) {
+            [$type, $rawValue] = explode(':', $token, 2);
+            $value = (int) $rawValue;
+
+            if ($type === 'existing') {
+                $photo = $existingPhotos->get($value);
+                if ($photo === null) {
+                    continue;
+                }
+
+                $photo->update(['order' => $order]);
+                $usedExistingIds[$photo->id] = true;
+                $order++;
+
+                continue;
+            }
+
+            if (! isset($newPhotos[$value])) {
+                continue;
+            }
+
+            $path = $this->storePhoto($item, $newPhotos[$value], $order);
+            $this->itemRepository->addPhoto($item, $path, $order);
+            $usedNewIndexes[$value] = true;
+            $order++;
+        }
+
+        foreach ($existingPhotos as $photo) {
+            if (($usedExistingIds[$photo->id] ?? false) === true) {
+                continue;
+            }
+
+            $photo->update(['order' => $order]);
+            $order++;
+        }
+
+        foreach ($newPhotos as $index => $file) {
+            if (($usedNewIndexes[$index] ?? false) === true) {
+                continue;
+            }
+
+            $path = $this->storePhoto($item, $file, $order);
+            $this->itemRepository->addPhoto($item, $path, $order);
+            $order++;
+        }
     }
 
     private function storePhoto(Item $item, UploadedFile $file, int $order): string

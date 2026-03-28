@@ -115,18 +115,13 @@ final class AliExpressImportService
         $count = 0;
 
         foreach ($products as $product) {
-            $details = [];
-            if ($product['bought_on'] !== null) {
-                $details['_purchased_on'] = $product['bought_on'];
-            }
-
             $item = $this->itemService->createForImport($user, new ItemData(
                 title: $product['title'],
                 place_id: $placeId,
                 category_id: $categoryId,
                 price: $product['price'],
                 price_currency: $product['price_currency'] ?? CurrencyRateService::USD,
-                details: $details
+                purchased_on: $product['bought_on']
             ));
 
             if ($product['image_url'] !== null) {

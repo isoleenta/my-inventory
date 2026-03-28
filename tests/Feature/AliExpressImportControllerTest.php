@@ -176,11 +176,11 @@ HTML;
 
         $this->assertSame(
             '2026-02-22',
-            $firstItem->details['_purchased_on'] ?? null
+            $firstItem->purchased_on?->format('Y-m-d')
         );
         $this->assertSame(
             '2026-02-23',
-            $secondItem->details['_purchased_on'] ?? null
+            $secondItem->purchased_on?->format('Y-m-d')
         );
 
         foreach (\App\Models\ItemPhoto::query()->get() as $photo) {

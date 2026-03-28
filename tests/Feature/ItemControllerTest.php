@@ -7,12 +7,26 @@ use App\Models\Item;
 use App\Models\Place;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ItemControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function fakeImageUpload(string $filename): UploadedFile
+    {
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        $contents = match ($extension) {
+            'gif' => base64_decode('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', true),
+            default => base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4//8/AwAI/AL+X2VINwAAAABJRU5ErkJggg==', true),
+        };
+
+        return UploadedFile::fake()->createWithContent($filename, $contents ?: '');
+    }
 
     private function createUser(): User
     {
@@ -65,6 +79,36 @@ class ItemControllerTest extends TestCase
         ]);
     }
 
+    public function test_user_can_store_item_with_purchased_on(): void
+    {
+        Storage::fake('public');
+
+        $user = $this->createUser();
+        $place = Place::create(['user_id' => $user->id, 'name' => 'Office']);
+
+        $response = $this->actingAs($user, 'web_user')
+            ->post(route('items.store'), [
+                'title' => 'Notebook',
+                'place_id' => $place->id,
+                'purchased_on' => '2026-03-10',
+                'photos' => [
+                    $this->fakeImageUpload('first.png'),
+                    $this->fakeImageUpload('second.gif'),
+                ],
+                'photo_order' => ['new:1', 'new:0'],
+            ]);
+
+        $response->assertRedirect(route('inventory.show', ['place' => $place->id]));
+
+        $item = Item::query()->where('user_id', $user->id)->where('title', 'Notebook')->firstOrFail();
+        $item->load('photos');
+
+        $this->assertSame('2026-03-10', $item->purchased_on?->format('Y-m-d'));
+        $this->assertCount(2, $item->photos);
+        $this->assertStringEndsWith('.gif', $item->photos[0]->path);
+        $this->assertStringEndsWith('.png', $item->photos[1]->path);
+    }
+
     public function test_user_can_regenerate_item_title_and_category_with_ollama(): void
     {
         $user = $this->createUser();
@@ -78,7 +122,8 @@ class ItemControllerTest extends TestCase
             'title' => 'Wireless Earbuds Bluetooth 5.3 Super Bass',
             'description' => 'Imported from marketplace',
             'price' => '12.34',
-            'details' => ['_purchased_on' => '2026-02-22'],
+            'purchased_on' => '2026-02-22',
+            'details' => [],
         ]);
 
         Http::fake([
@@ -101,7 +146,66 @@ class ItemControllerTest extends TestCase
         $this->assertSame($place->id, $item->place_id);
         $this->assertSame('Imported from marketplace', $item->description);
         $this->assertSame('12.34', (string) $item->price);
-        $this->assertSame('2026-02-22', $item->details['_purchased_on'] ?? null);
+        $this->assertSame('2026-02-22', $item->purchased_on?->format('Y-m-d'));
+    }
+
+    public function test_user_can_update_item_purchased_on_and_photo_order(): void
+    {
+        Storage::fake('public');
+
+        $user = $this->createUser();
+        $place = Place::create(['user_id' => $user->id, 'name' => 'Office']);
+        $category = Category::create(['user_id' => $user->id, 'name' => 'Misc', 'fields' => []]);
+        $item = Item::create([
+            'user_id' => $user->id,
+            'place_id' => $place->id,
+            'category_id' => $category->id,
+            'title' => 'Camera',
+            'description' => 'Old description',
+            'price' => '10.00',
+            'details' => [],
+        ]);
+
+        Storage::disk('public')->put('items/'.$item->id.'/old-a.jpg', 'old-a');
+        Storage::disk('public')->put('items/'.$item->id.'/old-b.jpg', 'old-b');
+
+        $firstPhoto = $item->photos()->create([
+            'path' => 'items/'.$item->id.'/old-a.jpg',
+            'order' => 0,
+        ]);
+        $secondPhoto = $item->photos()->create([
+            'path' => 'items/'.$item->id.'/old-b.jpg',
+            'order' => 1,
+        ]);
+
+        $response = $this->actingAs($user, 'web_user')
+            ->post(route('items.update', $item), [
+                '_method' => 'PUT',
+                'title' => 'Camera',
+                'description' => 'Old description',
+                'category_id' => $category->id,
+                'place_id' => $place->id,
+                'price' => '10.00',
+                'price_currency' => 'USD',
+                'purchased_on' => '2026-03-11',
+                'photos' => [
+                    $this->fakeImageUpload('fresh.png'),
+                ],
+                'photo_order' => ['new:0', 'existing:'.$secondPhoto->id],
+                'removed_photo_ids' => [$firstPhoto->id],
+            ]);
+
+        $response->assertRedirect(route('inventory.show', ['place' => $place->id]));
+
+        $item->refresh();
+        $item->load('photos');
+
+        $this->assertSame('2026-03-11', $item->purchased_on?->format('Y-m-d'));
+        $this->assertCount(2, $item->photos);
+        $this->assertStringEndsWith('.png', $item->photos[0]->path);
+        $this->assertSame($secondPhoto->id, $item->photos[1]->id);
+        $this->assertDatabaseMissing('item_photos', ['id' => $firstPhoto->id]);
+        Storage::disk('public')->assertMissing('items/'.$item->id.'/old-a.jpg');
     }
 
     public function test_regenerate_shows_error_when_ollama_returns_error_status(): void

@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ItemPhotoManager from '@/Components/ItemPhotoManager';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -6,6 +7,7 @@ import TextInput from '@/Components/TextInput';
 import { categoryTreeOptions } from '@/lib/categoryTree';
 import { USD } from '@/lib/currency';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
 
 const inputClass =
     'mt-1 block w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-gray-100 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary';
@@ -19,9 +21,19 @@ export default function EditItem({ item, categories = [], placeOptions = {} }) {
         place_id: item.place_id?.toString() ?? '',
         price: item.price != null ? String(item.price) : '',
         price_currency: USD,
+        purchased_on: item.purchased_on || '',
         details: item.details ?? {},
-        photos: [],
     });
+    const [photoItems, setPhotoItems] = useState(
+        (item.photos ?? []).map((photo) => ({
+            key: `existing-${photo.id}`,
+            kind: 'existing',
+            id: photo.id,
+            url: photo.url,
+        }))
+    );
+    const [removedPhotoIds, setRemovedPhotoIds] = useState([]);
+    const photoItemsRef = useRef(photoItems);
 
     const selectedCategory = data.category_id
         ? categories.find(
@@ -34,16 +46,95 @@ export default function EditItem({ item, categories = [], placeOptions = {} }) {
         setData('details', { ...data.details, [key]: value });
     };
 
+    const addFiles = (files) => {
+        if (files.length === 0) {
+            return;
+        }
+
+        setPhotoItems((current) => [
+            ...current,
+            ...files
+                .filter((file) => file instanceof File && file.type.startsWith('image/'))
+                .map((file) => ({
+                    key: `new-${crypto.randomUUID()}`,
+                    kind: 'new',
+                    file,
+                    url: URL.createObjectURL(file),
+                })),
+        ]);
+    };
+
+    const movePhoto = (index, direction) => {
+        const nextIndex = index + direction;
+        if (nextIndex < 0 || nextIndex >= photoItems.length) {
+            return;
+        }
+
+        setPhotoItems((current) => {
+            const next = [...current];
+            [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+            return next;
+        });
+    };
+
+    const removePhoto = (index) => {
+        const removed = photoItems[index];
+        if (!removed) {
+            return;
+        }
+
+        if (removed.kind === 'existing') {
+            setRemovedPhotoIds((current) => [...current, removed.id]);
+        }
+
+        if (removed.kind === 'new' && removed.url.startsWith('blob:')) {
+            URL.revokeObjectURL(removed.url);
+        }
+
+        setPhotoItems((current) => current.filter((_, currentIndex) => currentIndex !== index));
+    };
+
+    useEffect(() => {
+        photoItemsRef.current = photoItems;
+    }, [photoItems]);
+
+    useEffect(() => {
+        return () => {
+            photoItemsRef.current.forEach((photo) => {
+                if (photo.kind === 'new' && photo.url.startsWith('blob:')) {
+                    URL.revokeObjectURL(photo.url);
+                }
+            });
+        };
+    }, []);
+
     const submit = (e) => {
         e.preventDefault();
-        transform((d) => ({
-            ...d,
-            _method: 'PUT',
-            category_id: d.category_id ? parseInt(d.category_id, 10) : null,
-            place_id: d.place_id ? parseInt(d.place_id, 10) : null,
-            price: (d.price && String(d.price).trim()) ? d.price : null,
-            price_currency: d.price && String(d.price).trim() ? d.price_currency : USD,
-        }));
+        transform((d) => {
+            const orderedPhotos = [];
+            const photoOrder = photoItems.map((photo) => {
+                if (photo.kind === 'existing') {
+                    return `existing:${photo.id}`;
+                }
+
+                const newIndex = orderedPhotos.push(photo.file) - 1;
+
+                return `new:${newIndex}`;
+            });
+
+            return {
+                ...d,
+                _method: 'PUT',
+                category_id: d.category_id ? parseInt(d.category_id, 10) : null,
+                place_id: d.place_id ? parseInt(d.place_id, 10) : null,
+                price: (d.price && String(d.price).trim()) ? d.price : null,
+                price_currency: d.price && String(d.price).trim() ? d.price_currency : USD,
+                purchased_on: d.purchased_on || null,
+                photos: orderedPhotos,
+                photo_order: photoOrder,
+                removed_photo_ids: removedPhotoIds,
+            };
+        });
         post(route('items.update', item.id));
     };
 
@@ -62,22 +153,6 @@ export default function EditItem({ item, categories = [], placeOptions = {} }) {
                 </section>
 
                 <div className="max-w-2xl rounded-xl border border-white/10 bg-surface p-6 sm:p-8">
-                    {item.photos?.length > 0 && (
-                        <div className="mb-6">
-                            <InputLabel value="Current photos" />
-                            <div className="mt-2 flex flex-wrap gap-2">
-                                {item.photos.map((photo) => (
-                                    <img
-                                        key={photo.id}
-                                        src={photo.url}
-                                        alt=""
-                                        className="h-24 w-24 rounded-lg border border-white/10 object-cover"
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
                     <form onSubmit={submit} className="space-y-6">
                         <div>
                             <InputLabel htmlFor="title" value="Title" />
@@ -223,18 +298,26 @@ export default function EditItem({ item, categories = [], placeOptions = {} }) {
                         </div>
 
                         <div>
-                            <InputLabel value="Add more photos (optional)" />
-                            <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={(e) =>
-                                    setData('photos', Array.from(e.target.files || []))
-                                }
-                                className="mt-1 block w-full text-sm text-gray-400 file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:font-medium file:text-black file:transition hover:file:bg-primary-light"
+                            <InputLabel htmlFor="purchased_on" value="Purchased on (optional)" />
+                            <TextInput
+                                id="purchased_on"
+                                type="date"
+                                value={data.purchased_on}
+                                onChange={(e) => setData('purchased_on', e.target.value)}
+                                className="mt-1 block w-full"
                             />
-                            <InputError message={errors.photos} className="mt-2" />
+                            <InputError message={errors.purchased_on} className="mt-2" />
                         </div>
+
+                        <ItemPhotoManager
+                            label="Photos"
+                            hint="Paste new images, reorder previews, or remove ones you do not want to keep."
+                            items={photoItems}
+                            errorMessage={errors.photos || errors.photo_order || errors.removed_photo_ids}
+                            onAddFiles={addFiles}
+                            onMove={movePhoto}
+                            onRemove={removePhoto}
+                        />
 
                         <div className="flex flex-wrap gap-4">
                             <PrimaryButton disabled={processing}>

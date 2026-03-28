@@ -31,7 +31,7 @@ export default function ShowItem({ item }) {
     const [isRegenerating, setIsRegenerating] = useState(false);
     const { displayCurrency, usdToUahRate } = useDisplayCurrency();
     const placeLabel = item.place?.name ?? '—';
-    const purchasedOn = formatBoughtOn(item.details?._purchased_on);
+    const purchasedOn = formatBoughtOn(item.purchased_on);
     const photos = item.photos ?? [];
     const hasMultiple = photos.length > 1;
     const currentPhoto = photos[photoIndex];

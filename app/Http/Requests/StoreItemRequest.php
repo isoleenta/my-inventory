@@ -33,8 +33,11 @@ class StoreItemRequest extends FormRequest
             ],
             'price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'price_currency' => ['nullable', 'string', Rule::in(['USD', 'UAH'])],
+            'purchased_on' => ['nullable', 'date'],
             'photos' => ['nullable', 'array', 'max:10'],
             'photos.*' => ['image', 'max:5120'],
+            'photo_order' => ['nullable', 'array'],
+            'photo_order.*' => ['string', 'regex:/^(existing|new):\d+$/'],
             'details' => ['nullable', 'array'],
             'details.*' => ['nullable', 'string', 'max:1000'],
         ];
@@ -51,7 +54,9 @@ class StoreItemRequest extends FormRequest
             category_id: isset($v['category_id']) ? (int) $v['category_id'] : null,
             price: isset($v['price']) ? (string) $v['price'] : null,
             price_currency: isset($v['price_currency']) ? (string) $v['price_currency'] : 'USD',
-            details: $v['details'] ?? []
+            purchased_on: $v['purchased_on'] ?? null,
+            details: $v['details'] ?? [],
+            photo_order: $v['photo_order'] ?? [],
         );
     }
 }
